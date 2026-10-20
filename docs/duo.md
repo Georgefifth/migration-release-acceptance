@@ -1,7 +1,7 @@
 # GitLab Duo activation and demo
 
 ## Integration status
-The flow is registered as private catalog item 1018884, version 1.0.0:
+The flow is registered as private catalog item 1018884, version 1.1.0:
 https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/automate/flows/1018884
 
 Enabled for Showcase after the human explicitly authorized the Developer service
@@ -33,8 +33,14 @@ it and was accepted by the catalog. Runtime platform validation is authoritative
 ## HTTP milestone status
 The current harness records 16 HTTP and lifecycle checks. The 13-check Duo run
 above predates this change and does not verify the HTTP milestone. The checked-in
-flow now reads scope limits from the actual report; the catalog must be updated
-and exercised before claiming the new configuration is active.
+flow now reads scope limits from the actual report and was saved to the enabled
+catalog as v1.1.0. An actual HTTP-scope Duo session is still pending.
+
+HTTP CI evidence at commit `ce5f705ce16b5689ac4e36cdfb0f720adcdf7d29`:
+- Expand: pipeline 2968622548, job 17324250626, all 16 checks pass.
+- Breaking: pipeline 2968623423, job 17324258105, 8 pass and 8 fail with SQLSTATE 42703.
+- Both runs recorded separate v1/v2 processes and a third v1 process after rollback.
+- MR !2 is an isolated unsafe demonstration targeting the feature branch; do not merge it.
 
 ## Configure
 1. In this project's AI > Flows (or Explore > AI Catalog > Flows), create a flow
