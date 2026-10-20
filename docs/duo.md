@@ -1,9 +1,16 @@
 # GitLab Duo activation and demo
 
 ## Integration status
-The flow YAML is source configuration, not proof of activation. No successful
-Duo session is claimed by this document. Update this section only with an actual
-catalog item URL, session URL, and MR note after running it.
+The flow is registered as private catalog item 1018884, version 1.0.0:
+https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/automate/flows/1018884
+
+Enablement is pending user confirmation of GitLab's Developer service account.
+Only the mention trigger is selected. No successful Duo session is claimed yet.
+Record actual session and MR note URLs after activation and a completed run.
+
+The hackathon catalog rejects component-level `max_cycles`, even though GitLab's
+public upstream flow registry documents it. The checked-in configuration omits
+it and was accepted by the catalog. Runtime platform validation is authoritative.
 
 ## Configure
 1. In this project's AI > Flows (or Explore > AI Catalog > Flows), create a flow
