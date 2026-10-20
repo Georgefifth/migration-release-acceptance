@@ -7,9 +7,11 @@ The repository name is temporary; the human chooses the public product name.
 
 ## Architecture and scope
 Python CLI, psycopg, PostgreSQL 16 CI service, checked-in SQL fixtures, versioned
-application data-access adapters, JSON/Markdown/HTML evidence, and a GitLab Duo flow.
-First milestone is a runnable reference harness, not a general migration platform.
-Adapters exercise real SQL; they are not complete deployed application instances.
+independent loopback HTTP application processes backed by versioned SQL adapters,
+JSON/Markdown/HTML evidence, and a GitLab Duo flow. This remains a synthetic
+reference harness, not a general migration platform or production deployment.
+Each HTTP request uses a separate database connection; responses follow commit.
+Rollback must stop both apps, restart v1, and verify a different process identity.
 Mixed-version probes are sequential interleavings, not concurrent load tests.
 
 ## Development constraints

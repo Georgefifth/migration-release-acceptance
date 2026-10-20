@@ -80,8 +80,10 @@ prompts:
         Otherwise post one MR note headed "Migration acceptance evidence" with
         the exact deterministic verdict, commit/run ID, linked job/pipeline,
         failed operation + SQLSTATE, and one specific recommended next action.
-        State that these are synthetic SQL-adapter probes and sequential mixed
-        interleavings, not deployed apps, concurrent load, or production proof.
+        State the transport and scope from the actual report limitations. HTTP reports
+        exercise synthetic independent app processes and sequential interleavings.
+        Older reports may cover only SQL adapters. Never infer concurrent load or
+        production proof from either kind. Preserve startup/restart gaps.
         GO_WITHIN_SCOPE must never be shortened to production-safe or approved.
         The human owns merge/deployment. Never approve or merge the MR.
         Do not output credentials, raw rows, connection strings, or full logs.

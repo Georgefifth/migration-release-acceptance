@@ -1,4 +1,4 @@
-# Product specification — first milestone
+# Product specification — HTTP reference milestone
 
 ## Audience and problem
 Small SaaS teams using PostgreSQL and rolling deployments need evidence that old
@@ -19,12 +19,13 @@ plus an ordinary CI matrix before investing in a general platform.
    and recommends a bounded next action. The human decides what to change/merge.
 
 ## Deterministic acceptance contract
-- `GO_WITHIN_SCOPE` / exit 0: all 13 declared checks pass and cleanup succeeds.
+- `GO_WITHIN_SCOPE` / exit 0: all 16 declared checks pass and cleanup succeeds.
 - `BLOCK` / exit 1: baseline and migration pass; compatibility checks fail.
 - `INCONCLUSIVE` / exit 2: incomplete evidence, setup, timeout, connection,
   migration, unknown error, or cleanup failure. Never promote this to GO.
 - An unsafe rename must pass migration + v2 checks but fail v1/mixed/app rollback.
 - An expansion retaining both representations must pass all declared checks.
+- Startup/restart failures are INCONCLUSIVE; distinct process IDs are recorded.
 - Baseline failure must not be blamed on the candidate migration.
 - Every report carries commit, fixture digest, run ID, SQLSTATE, and scope limits.
 - Agent text cannot override the deterministic result.
@@ -37,8 +38,8 @@ hypothesis is easier application-behavior acceptance, not novel migration logic.
 Do not copy Time-Traveler or claim isolated migration rehearsal is a new idea.
 
 ## Explicit first-milestone limits
-Only two trusted reference migrations and two SQL application adapters. No
-arbitrary repository ingestion, HTTP application containers, concurrent load,
+Only two trusted reference migrations and two synthetic loopback HTTP application
+processes. No arbitrary repository ingestion, application containers, concurrent load,
 production snapshots, DB rollback, lock benchmarking, automatic repair or deploy.
 The expansion trigger is a fixture-specific example, not a universal recipe.
 
@@ -49,6 +50,6 @@ migration and it adds useful coverage or saves meaningful setup/review time.
 These are proposed validation criteria, not completed interviews or results.
 
 ## Next milestone after evidence
-Support user-supplied, reviewed business adapters in the existing CI environment;
-then consider isolated v1/v2 HTTP processes. Do not build a hosted control plane
+Validate against real teams before supporting user-supplied, reviewed business
+applications in the existing CI environment. Do not build a hosted control plane
 before validating repeated use and installation effort.

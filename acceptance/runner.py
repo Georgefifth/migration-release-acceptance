@@ -8,14 +8,14 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .adapters import OLD, NEW
+from .http_client import Application, ApplicationError
 from .report import write_reports
 
 ROOT = Path(__file__).resolve().parent.parent
 CHECK_IDS = (
-    'baseline_read', 'baseline_write', 'migration', 'new_read', 'new_write',
+    'applications_started', 'baseline_read', 'baseline_write', 'migration', 'new_application_started', 'new_read', 'new_write',
     'old_read', 'old_write', 'old_to_new', 'new_to_old',
-    'new_update_to_old', 'old_update_to_new', 'rollback_read', 'rollback_new_data',
+    'new_update_to_old', 'old_update_to_new', 'rollback_restart', 'rollback_read', 'rollback_new_data',
 )
 COMPATIBILITY_STATES = {'42703', '42P01', '23502', '23505', '23514', 'P0001'}
 
@@ -27,7 +27,7 @@ def verdict(report):
             or len(ids) != len(CHECK_IDS) or set(ids) != set(CHECK_IDS)):
         return 'INCONCLUSIVE'
     if any(c['status'] != 'PASS' for c in checks
-           if c['id'] in {'baseline_read', 'baseline_write', 'migration'}):
+           if c['id'] in {'applications_started', 'new_application_started', 'baseline_read', 'baseline_write', 'migration', 'rollback_restart'}):
         return 'INCONCLUSIVE'
     failures = [c for c in checks if c['status'] != 'PASS']
     if any(c.get('failure_kind') != 'compatibility' for c in failures):
@@ -58,7 +58,9 @@ def run(scenario, dsn):
     baseline = (ROOT / 'fixtures/baseline.sql').read_text()
     migration = (ROOT / f'fixtures/{scenario}.sql').read_text()
     report = {
-        'schema_version': 1,
+        'schema_version': 2,
+        'transport': 'HTTP',
+        'applications': [],
         'run_id': str(uuid.uuid4()),
         'scenario': scenario,
         'commit': os.environ.get('CI_COMMIT_SHA', 'local-development'),
@@ -68,9 +70,9 @@ def run(scenario, dsn):
         'checks': [], 'completed': False, 'cleanup_ok': False,
         'limitations': [
             'Synthetic customer records only; no production data or traffic.',
-            'Two SQL data-access adapters, not deployed application binaries.',
+            'Two synthetic HTTP app processes using separate per-request database connections.',
             'Sequential interleavings; no concurrent transactions or load test.',
-            'No lock-duration, large backfill, replication, or deployment verification.',
+            'No lock-duration, large backfill, replication, or production deployment verification.',
             'Rollback means returning to v1 code on the migrated schema, not undoing SQL.',
             'GO applies only to this fixture and these declared probes.',
         ],
@@ -78,6 +80,8 @@ def run(scenario, dsn):
     schema = 'acceptance_' + uuid.uuid4().hex
     conn = None
     created = False
+    OLD = Application('v1', schema, dsn)
+    NEW = Application('v2', schema, dsn)
 
     def check(check_id, stage, version, operation, fn):
         start = time.monotonic()
@@ -86,7 +90,7 @@ def run(scenario, dsn):
             with conn.transaction():
                 fn()
             item['status'] = 'PASS'
-        except psycopg.Error as exc:
+        except (psycopg.Error, ApplicationError) as exc:
             item.update(status='FAIL', sqlstate=exc.sqlstate,
                         failure_kind='compatibility' if exc.sqlstate in COMPATIBILITY_STATES
                         else 'infrastructure_or_unknown')
@@ -107,6 +111,9 @@ def run(scenario, dsn):
         with conn.transaction():
             conn.execute(baseline)
         report['postgres_version'] = conn.info.server_version
+        if not check('applications_started', 'baseline', 'v1', 'Start independent old HTTP application',
+                     lambda: report['applications'].append(OLD.start())):
+            return report
         if not check('baseline_read', 'baseline', 'v1', 'Read existing customer',
                      lambda: equal(OLD.read(conn, 1), 'initial@example.test')):
             return report
@@ -115,6 +122,9 @@ def run(scenario, dsn):
             return report
         if not check('migration', 'migration', '-', 'Apply candidate SQL',
                      lambda: conn.execute(migration)):
+            return report
+        if not check('new_application_started', 'target', 'v2', 'Start independent new HTTP application',
+                     lambda: report['applications'].append(NEW.start())):
             return report
         check('new_read', 'target', 'v2', 'Read migrated customer',
               lambda: equal(NEW.read(conn, 1), 'initial@example.test'))
@@ -145,6 +155,17 @@ def run(scenario, dsn):
         check('new_to_old', 'mixed', 'v2 → v1', 'New creates; old reads', new_to_old)
         check('new_update_to_old', 'mixed', 'v2 → v1', 'New updates; old reads', new_update_to_old)
         check('old_update_to_new', 'mixed', 'v1 → v2', 'Old updates; new reads', old_update_to_new)
+        def restart_old():
+            previous_pid = OLD.process.pid
+            equal(NEW.stop(), True)
+            equal(OLD.stop(), True)
+            identity = OLD.start()
+            equal(identity['pid'] != previous_pid, True)
+            report['applications'].append(dict(identity, phase='rollback'))
+
+        if not check('rollback_restart', 'app_rollback', 'v1',
+                     'Stop both apps; restart v1; verify new process identity', restart_old):
+            return report
         check('rollback_read', 'app_rollback', 'v1', 'Read pre-existing data after rollout',
               lambda: equal(bool(OLD.read(conn, 1)), True))
         check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
@@ -156,12 +177,18 @@ def run(scenario, dsn):
     except Exception as exc:
         report['error'] = {'kind': type(exc).__name__}
     finally:
+        processes_stopped = True
+        for app in (OLD, NEW):
+            try:
+                processes_stopped = app.stop() and processes_stopped
+            except Exception:
+                processes_stopped = False
         if conn is not None:
             try:
                 if created:
                     # Only drop the fresh random schema created by this exact run.
                     conn.execute(sql.SQL('DROP SCHEMA {} CASCADE').format(sql.Identifier(schema)))
-                report['cleanup_ok'] = True
+                report['cleanup_ok'] = processes_stopped
             except psycopg.Error:
                 report['cleanup_ok'] = False
             finally:

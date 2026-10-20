@@ -30,6 +30,12 @@ The hackathon catalog rejects component-level `max_cycles`, even though GitLab's
 public upstream flow registry documents it. The checked-in configuration omits
 it and was accepted by the catalog. Runtime platform validation is authoritative.
 
+## HTTP milestone status
+The current harness records 16 HTTP and lifecycle checks. The 13-check Duo run
+above predates this change and does not verify the HTTP milestone. The checked-in
+flow now reads scope limits from the actual report; the catalog must be updated
+and exercised before claiming the new configuration is active.
+
 ## Configure
 1. In this project's AI > Flows (or Explore > AI Catalog > Flows), create a flow
    managed by this project. Use a descriptive human-selected display name.

@@ -12,6 +12,11 @@ def main():
         write_reports(result, Path('reports'))
         if result['verdict'] != expected:
             raise AssertionError(f'{scenario}: expected {expected}, got {result["verdict"]}')
+        applications = result['applications']
+        if (result['transport'] != 'HTTP' or len(applications) != 3
+                or len({app['pid'] for app in applications}) != 3
+                or applications[-1].get('phase') != 'rollback'):
+            raise AssertionError('Independent application lifecycle evidence missing')
         checks = {c['id']: c for c in result['checks']}
         # Distinguish the compatibility blind spot from simply broken SQL/new code.
         for name in ['migration', 'new_read', 'new_write']:

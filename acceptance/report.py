@@ -8,6 +8,7 @@ def markdown(report):
     lines = [f"# Migration acceptance: {report['verdict']}", '',
              f"Scenario: `{report['scenario']}` · Run: `{report['run_id']}`", '',
              f"Commit: `{report['commit']}`", '',
+             f"Transport: {report.get('transport', 'unspecified')}", '',
              f"Fixture SHA-256: `{report['fixture_sha256']}`", '',
              '| Stage | App | Operation | Result | SQLSTATE |',
              '|---|---|---|---|---|']
@@ -43,6 +44,7 @@ code{overflow-wrap:anywhere}small{color:#526373}</style>'''
     document += f"<h1>{html.escape(report['verdict'])}</h1>"
     document += f"<p>Scenario: {html.escape(stem)} · Run: {html.escape(report['run_id'])}</p>"
     document += f"<p>Commit: <code>{html.escape(report['commit'])}</code></p>"
+    document += '<p>Transport: ' + html.escape(report.get('transport', 'unspecified')) + '</p>'
     document += '<table><thead><tr><th>Stage</th><th>App</th><th>Operation</th><th>Result</th><th>SQLSTATE</th></tr></thead><tbody>'
     document += rows + '</tbody></table><h2>Scope and limitations</h2><ul>' + limitations + '</ul>'
     document += f'<small>Execution error: {error}</small></html>'

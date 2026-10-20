@@ -4,8 +4,9 @@ See which application behavior breaks during a schema rollout, with executable
 evidence instead of an AI risk score. Working description; public naming is left
 to the human participant.
 
-**Status:** first-milestone reference harness. Two real PostgreSQL fixtures and
-two versioned SQL data-access adapters, not full deployed application instances.
+**Status:** runnable reference harness. Two real PostgreSQL fixtures and two
+independent synthetic HTTP app processes, with per-request database connections.
+Rollback stops both apps and restarts v1 against the migrated schema.
 GitLab Duo activation and actual run evidence are tracked in [Duo setup](docs/duo.md).
 
 ## The failure this demonstrates
@@ -43,7 +44,8 @@ Push a branch or open an MR. Three jobs run:
 
 ## Coverage and limitations
 Baseline read/write, migration execution, target-version read/write, old-version
-read/write, both directions of mixed create/update, and app-version rollback.
+read/write via HTTP, both directions of mixed create/update, and app-process rollback.
+All 16 checks, including startup and restart evidence, must pass for a scoped GO.
 Interleavings are sequential, not concurrent. No production-scale lock, backfill,
 replication or performance claim is made. Rollback does not undo the database.
 Passing fixture checks is not a general guarantee of migration safety.

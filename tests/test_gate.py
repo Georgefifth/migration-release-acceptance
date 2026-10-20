@@ -30,7 +30,8 @@ class GateTests(unittest.TestCase):
         self.assertEqual(verdict(report), 'BLOCK')
 
     def test_failed_baseline_and_migration_are_inconclusive(self):
-        for name in ['baseline_read', 'baseline_write', 'migration']:
+        for name in ['applications_started', 'new_application_started', 'baseline_read',
+                     'baseline_write', 'migration', 'rollback_restart']:
             with self.subTest(name=name):
                 report = complete()
                 report['checks'][CHECK_IDS.index(name)].update(
