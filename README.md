@@ -1,93 +1,56 @@
-# Showcase
+# PostgreSQL migration release acceptance
 
-Transcend Hackathon Showcase workspace for @Georgefifth (DevPost: georgefifth). Visit the [onboarding issue](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/work_items/1) to get started.
+See which application behavior breaks during a schema rollout, with executable
+evidence instead of an AI risk score. Working description; public naming is left
+to the human participant.
 
-## Getting started
+**Status:** first-milestone reference harness. Two real PostgreSQL fixtures and
+two versioned SQL data-access adapters, not full deployed application instances.
+GitLab Duo activation and actual run evidence are tracked in [Duo setup](docs/duo.md).
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## The failure this demonstrates
+Renaming `customers.email` to `contact_email` passes migration execution and v2
+tests, but v1 code still queries `email`. During rollout or app rollback it fails.
+The alternative fixture retains both columns and synchronizes reads/writes.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Run locally (disposable PostgreSQL only)
+Use Python 3.12+ and an empty PostgreSQL 16 test database. Never use a production
+database. The harness executes trusted repository SQL and creates/removes its own
+random schema. Schema isolation is not a sandbox for malicious SQL.
 
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```sh
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
+export DATABASE_URL='postgresql://testuser:testpassword@localhost:5432/acceptance'
+export ACCEPTANCE_DISPOSABLE_DB=yes
+.venv/bin/python -m acceptance.demo
+.venv/bin/python -m acceptance.runner --scenario expand
+.venv/bin/python -m acceptance.runner --scenario breaking
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase.git
-git branch -M main
-git push -uf origin main
-```
 
-## Integrate with your tools
+The last command intentionally exits **1**. Open `reports/breaking.html`, or use
+the equivalent JSON/Markdown. Exit **0** means `GO_WITHIN_SCOPE`; **2** means
+`INCONCLUSIVE`. No raw rows, database URLs, or server exception messages are saved.
 
-* [Set up project integrations](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/settings/integrations)
+## GitLab CI
+Push a branch or open an MR. Three jobs run:
+1. `unit`: guard against unsafe gate/report behavior.
+2. `fixture-regressions`: verify that both known fixtures produce the expected
+   results. Its green status means the harness works, not that breaking SQL is safe.
+3. `release-acceptance`: checks `MIGRATION_SCENARIO` (default `expand`). Setting it
+   to `breaking` makes the release gate fail. Download reports from job artifacts.
 
-## Collaborate with your team
+## Coverage and limitations
+Baseline read/write, migration execution, target-version read/write, old-version
+read/write, both directions of mixed create/update, and app-version rollback.
+Interleavings are sequential, not concurrent. No production-scale lock, backfill,
+replication or performance claim is made. Rollback does not undo the database.
+Passing fixture checks is not a general guarantee of migration safety.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## Documentation
+- [Product and acceptance criteria](docs/product.md)
+- [Project development rules](AGENTS.md)
+- [Duo setup and demo procedure](docs/duo.md)
 
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Original project code is MIT-licensed. Dependencies retain their own licenses;
+see [third-party notices](THIRD_PARTY_NOTICES.md).

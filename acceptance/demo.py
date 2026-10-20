@@ -1,0 +1,30 @@
+"""Regression-test the harness using known unsafe and compatible fixtures."""
+import os
+from pathlib import Path
+from .report import write_reports
+from .runner import run
+
+
+def main():
+    dsn = os.environ['DATABASE_URL']
+    for scenario, expected in [('breaking', 'BLOCK'), ('expand', 'GO_WITHIN_SCOPE')]:
+        result = run(scenario, dsn)
+        write_reports(result, Path('reports'))
+        if result['verdict'] != expected:
+            raise AssertionError(f'{scenario}: expected {expected}, got {result["verdict"]}')
+        checks = {c['id']: c for c in result['checks']}
+        # Distinguish the compatibility blind spot from simply broken SQL/new code.
+        for name in ['migration', 'new_read', 'new_write']:
+            if checks[name]['status'] != 'PASS':
+                raise AssertionError(f'{scenario}: {name} must pass')
+        if scenario == 'breaking':
+            for name in ['old_read', 'old_write', 'old_to_new', 'new_to_old',
+                         'new_update_to_old', 'old_update_to_new',
+                         'rollback_read', 'rollback_new_data']:
+                if checks[name]['status'] != 'FAIL' or checks[name]['sqlstate'] != '42703':
+                    raise AssertionError(f'Expected missing-column evidence for {name}')
+        print(f'{scenario}: verified {expected} with {len(checks)} executed probes')
+
+
+if __name__ == '__main__':
+    main()
