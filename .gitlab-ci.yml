@@ -1,3 +1,11 @@
+spec:
+  inputs:
+    migration_scenario:
+      description: 'Trusted reference migration to accept'
+      type: string
+      default: expand
+      options: [expand, breaking]
+---
 stages: [test, acceptance]
 
 workflow:
@@ -14,7 +22,7 @@ default:
 
 variables:
   PIP_DISABLE_PIP_VERSION_CHECK: '1'
-  MIGRATION_SCENARIO: 'expand'
+  MIGRATION_SCENARIO: '$[[ inputs.migration_scenario ]]'
 
 unit:
   stage: test

@@ -22,7 +22,7 @@ Review API tool permissions when enabling the flow; prompts alone are not a
 security boundary. The configuration is scoped to showcase project 87486337.
 
 ## Demonstrate the difference
-1. Run a pipeline with `MIGRATION_SCENARIO=breaking`. The release job fails even
+1. Run a pipeline with input `migration_scenario=breaking`. The release job fails even
    though the migration and v2 probes pass. Show old/mixed/app-rollback failures.
 2. Request Duo's evidence explanation on the MR using current job evidence.
 3. Use the expand fixture and rerun. All declared checks must pass.

@@ -37,8 +37,9 @@ Push a branch or open an MR. Three jobs run:
 1. `unit`: guard against unsafe gate/report behavior.
 2. `fixture-regressions`: verify that both known fixtures produce the expected
    results. Its green status means the harness works, not that breaking SQL is safe.
-3. `release-acceptance`: checks `MIGRATION_SCENARIO` (default `expand`). Setting it
-   to `breaking` makes the release gate fail. Download reports from job artifacts.
+3. `release-acceptance`: checks the pipeline input `migration_scenario` (default
+   `expand`). Selecting `breaking` makes the release gate fail. Download reports
+   from job artifacts. Inputs are restricted to these two reference fixtures.
 
 ## Coverage and limitations
 Baseline read/write, migration execution, target-version read/write, old-version
