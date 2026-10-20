@@ -4,9 +4,27 @@
 The flow is registered as private catalog item 1018884, version 1.0.0:
 https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/automate/flows/1018884
 
-Enablement is pending user confirmation of GitLab's Developer service account.
-Only the mention trigger is selected. No successful Duo session is claimed yet.
-Record actual session and MR note URLs after activation and a completed run.
+Enabled for Showcase after the human explicitly authorized the Developer service
+account. The only configured trigger is Mention. The service account is
+`@ai-migration-acceptance-evidence-gitlab-ai-hackathon`.
+
+## Verified runtime evidence (2026-10-21, Asia/Kuala_Lumpur)
+- Completed Duo session:
+  https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/automate/agent-sessions/9764921
+- Successful Duo execution pipeline:
+  https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/pipelines/2968594735
+- Actual service-account MR report:
+  https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/merge_requests/1#note_4052164702
+- Evidence reviewed: commit `3554a6dfedcc15d4b22a54e04b7c40d73318012c`,
+  acceptance job `17322799360`, run ID `8f68d2d5-8c59-4f55-b0ff-290277af57bd`.
+- Deterministic result: `expand`, 13/13 probes pass, `GO_WITHIN_SCOPE`.
+- Duo independently reread the MR and job log, matched SHA/run ID, identified
+  earlier runs in the MR description as stale, and preserved the scope limits.
+- This is historical evidence for the named commit. Later documentation commits
+  do not inherit this acceptance result; rerun on the final head before release.
+
+The unsafe rename was separately verified by CI at commit `a2e2417f` with 8
+compatibility failures. It has not yet received a current-head Duo review.
 
 The hackathon catalog rejects component-level `max_cycles`, even though GitLab's
 public upstream flow registry documents it. The checked-in configuration omits
@@ -51,4 +69,5 @@ The agent must report INCONCLUSIVE if only an unrelated or stale pipeline exists
 - https://gitlab-transcend.devpost.com/rules
 
 Registry/tool names were checked against GitLab's public AI Gateway repository.
-Runtime schema/tool availability still needs verification on the hackathon group.
+The actual hackathon runtime executed both components and published the report
+linked above. The initial transient service-unavailable error cleared on retry.
