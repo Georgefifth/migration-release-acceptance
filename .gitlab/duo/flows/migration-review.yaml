@@ -5,7 +5,6 @@ components:
   - name: evidence_reviewer
     type: AgentComponent
     prompt_id: inspect_acceptance
-    max_cycles: 12
     inputs:
       - from: context:project_id
         as: project_id
@@ -22,7 +21,6 @@ components:
   - name: evidence_publisher
     type: AgentComponent
     prompt_id: publish_acceptance
-    max_cycles: 6
     inputs:
       - from: context:project_id
         as: project_id
