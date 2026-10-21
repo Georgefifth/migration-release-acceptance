@@ -9,12 +9,15 @@ def markdown(report):
              f"Scenario: `{report['scenario']}` · Run: `{report['run_id']}`", '',
              f"Commit: `{report['commit']}`", '',
              f"Transport: {report.get('transport', 'unspecified')}", '',
+             f"Workload: {report.get('workload', 'customer-reference')}", '',
              f"Fixture SHA-256: `{report['fixture_sha256']}`", '',
              '| Stage | App | Operation | Result | SQLSTATE |',
              '|---|---|---|---|---|']
     for c in report['checks']:
         lines.append(f"| {c['stage']} | {c['version']} | {c['operation']} | "
                      f"{c['status']} | {c.get('sqlstate') or '—'} |")
+    if report.get('provenance'):
+        lines += ['', 'Upstream provenance: `' + json.dumps(report['provenance'], sort_keys=True) + '`']
     lines += ['', '## Scope and limitations', '']
     lines += ['- ' + item for item in report['limitations']]
     if report.get('error'):
@@ -45,6 +48,9 @@ code{overflow-wrap:anywhere}small{color:#526373}</style>'''
     document += f"<p>Scenario: {html.escape(stem)} · Run: {html.escape(report['run_id'])}</p>"
     document += f"<p>Commit: <code>{html.escape(report['commit'])}</code></p>"
     document += '<p>Transport: ' + html.escape(report.get('transport', 'unspecified')) + '</p>'
+    document += '<p>Workload: ' + html.escape(report.get('workload', 'customer-reference')) + '</p>'
+    if report.get('provenance'):
+        document += '<details><summary>Upstream provenance</summary><pre>' + html.escape(json.dumps(report['provenance'], indent=2)) + '</pre></details>'
     document += '<table><thead><tr><th>Stage</th><th>App</th><th>Operation</th><th>Result</th><th>SQLSTATE</th></tr></thead><tbody>'
     document += rows + '</tbody></table><h2>Scope and limitations</h2><ul>' + limitations + '</ul>'
     document += f'<small>Execution error: {error}</small></html>'

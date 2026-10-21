@@ -34,13 +34,16 @@ the equivalent JSON/Markdown. Exit **0** means `GO_WITHIN_SCOPE`; **2** means
 `INCONCLUSIVE`. No raw rows, database URLs, or server exception messages are saved.
 
 ## GitLab CI
-Push a branch or open an MR. Four jobs run:
+Push a branch or open an MR. Five jobs run:
 1. `unit`: guard against unsafe gate/report behavior.
 2. `fixture-regressions`: verify that both known fixtures produce the expected
    results. Its green status means the harness works, not that breaking SQL is safe.
 3. `adapter-contract`: run the project-local adapter example and verify cleanup
    after a partially started app fails. This is also a harness self-test.
-4. `release-acceptance`: checks the pipeline input `migration_scenario` (default
+4. `upstream-fastapi`: exercise actual login and item CRUD in a pinned public
+   FastAPI backend, with a reviewed column-mapping change. Integration evidence,
+   not real-team adoption or approval of arbitrary migrations.
+5. `release-acceptance`: checks the pipeline input `migration_scenario` (default
    `expand`). Selecting `breaking` makes the release gate fail. Download reports
    from job artifacts. Inputs are restricted to these two reference fixtures.
 
@@ -53,6 +56,7 @@ replication or performance claim is made. Rollback does not undo the database.
 Passing fixture checks is not a general guarantee of migration safety.
 
 ## Documentation
+- [Upstream application case](docs/upstream-fastapi.md)
 - [Application adapter integration](docs/application-integration.md)
 - [Team validation protocol](docs/team-validation.md)
 - [Product and acceptance criteria](docs/product.md)

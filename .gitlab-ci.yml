@@ -62,6 +62,20 @@ adapter-contract:
     # Integration smoke tests, including partial-startup cleanup; not release approval.
     - python -m examples.verify_adapter
 
+upstream-fastapi:
+  extends: .postgres
+  image: python:3.14-slim
+  stage: test
+  before_script:
+    - pip install uv==0.12.5
+    - python -m integrations.prepare_fastapi
+    - uv sync --project .upstream/source --package app --frozen --no-dev
+    - .upstream/source/.venv/bin/python -m acceptance.wait_db
+  script:
+    # Fixed upstream revision + reviewed candidate change; integration self-test.
+    - .upstream/source/.venv/bin/python -m integrations.fastapi_case --scenario breaking
+    - .upstream/source/.venv/bin/python -m integrations.fastapi_case --scenario expand
+
 release-acceptance:
   extends: .postgres
   stage: acceptance

@@ -33,6 +33,8 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
 ## Quality and acceptance
 - Run `python -m unittest discover -s tests -v` for report/gate tests.
 - Run `python -m examples.verify_adapter` for integration and partial-startup cleanup.
+- Run the `upstream-fastapi` job for the pinned public backend case (Python 3.14).
+  Keep upstream auth/routes intact; never call integration success real-team validation.
 - Run `python -m acceptance.demo` against PostgreSQL to verify both fixtures.
 - Unsafe rename: new-version probes pass, old/mixed/rollback probes fail; gate BLOCK.
 - Expand with synchronization: all declared probes pass; gate GO_WITHIN_SCOPE.

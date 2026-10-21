@@ -53,12 +53,16 @@ class GateTests(unittest.TestCase):
         report = complete()
         report.update(scenario='expand', run_id='test', commit='<script>alert(1)</script>',
                       fixture_sha256='digest', limitations=['Synthetic fixture only'],
+                      workload='<svg onload=alert(1)>', provenance={'repository': '<script>upstream</script>'},
                       verdict='GO_WITHIN_SCOPE')
         with tempfile.TemporaryDirectory() as directory:
             write_reports(report, directory)
             output = (Path(directory) / 'expand.html').read_text()
             self.assertNotIn('<script>', output)
             self.assertIn('&lt;script&gt;', output)
+            self.assertNotIn('<svg', output)
+            self.assertIn('&lt;svg', output)
+            self.assertIn('&lt;script&gt;upstream', output)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 # Third-party components
 
-No third-party source is copied into this project. Original code is MIT.
+No upstream application source is vendored. Original harness code is MIT.
+The integration downloads a fixed public upstream revision into an ignored
+working directory and retains its original license.
 
 - PostgreSQL: PostgreSQL License; run as a separate disposable service.
   https://www.postgresql.org/about/licence/
@@ -14,3 +16,15 @@ The official hackathon rules permit OSI-approved third-party components subject
 to license compatibility, while the FAQ uses broader MIT-only language. This
 dependency choice needs organizer clarification before final submission; do not
 claim that dependencies become MIT because the original project is MIT.
+
+## Public upstream application integration
+
+`fastapi/full-stack-fastapi-template`, commit
+`b1125d8839482cb7bbae603ddc6d0081bf87532e`, MIT, copyright 2019
+Sebastián Ramírez. Full license is preserved in `integrations/FASTAPI_LICENSE.txt`
+and the downloaded source. Only the derived v2 copy changes ItemBase.title's
+physical SQL column mapping; API routes and authentication remain upstream code.
+The wrapper supplies isolated configuration, readiness, baseline seeding, and
+sanitized SQLSTATE reporting. These changes are our integration code, not an
+upstream feature or claim of an upstream defect. Dependencies retain their own
+licenses and are installed from the upstream lockfile.

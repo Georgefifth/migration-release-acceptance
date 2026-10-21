@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .http_client import Application, ApplicationError
 from .report import write_reports
+from .workload import Workload
 
 ROOT = Path(__file__).resolve().parent.parent
 CHECK_IDS = (
@@ -41,13 +42,12 @@ def equal(actual, expected):
         raise AssertionError('Business result mismatch')
 
 
-def roundtrip(conn, adapter, customer_id):
-    value = 'created@example.test'
+def roundtrip(conn, adapter, customer_id, value='created@example.test'):
     adapter.create(conn, customer_id, value)
     equal(adapter.read(conn, customer_id), value)
 
 
-def run(scenario, dsn, application_factory=Application):
+def run(scenario, dsn, application_factory=Application, workload=None):
     import psycopg
     from psycopg import sql
 
@@ -55,11 +55,14 @@ def run(scenario, dsn, application_factory=Application):
         raise ValueError('Set ACCEPTANCE_DISPOSABLE_DB=yes for a disposable test DB')
     if scenario not in {'breaking', 'expand'}:
         raise ValueError('Unsupported reference scenario')
-    baseline = (ROOT / 'fixtures/baseline.sql').read_text()
-    migration = (ROOT / f'fixtures/{scenario}.sql').read_text()
+    workload = workload or Workload()
+    baseline = (workload.fixtures / 'baseline.sql').read_text()
+    migration = (workload.fixtures / f'{scenario}.sql').read_text()
     report = {
         'schema_version': 2,
         'transport': 'HTTP',
+        'workload': workload.name,
+        'provenance': workload.provenance,
         'application_factory': getattr(application_factory, '__module__', 'unknown') + ':'
         + getattr(application_factory, '__qualname__', type(application_factory).__qualname__),
         'applications': [],
@@ -71,8 +74,8 @@ def run(scenario, dsn, application_factory=Application):
         'fixture_sha256': hashlib.sha256((baseline + '\n' + migration).encode()).hexdigest(),
         'checks': [], 'completed': False, 'cleanup_ok': False,
         'limitations': [
-            'Synthetic customer records only; no production data or traffic.',
-            'Two synthetic HTTP app processes using separate per-request database connections.',
+            f'Synthetic {workload.entity} records only; no production data or traffic.',
+            workload.application_scope,
             'Sequential interleavings; no concurrent transactions or load test.',
             'No lock-duration, large backfill, replication, or production deployment verification.',
             'Rollback means returning to v1 code on the migrated schema, not undoing SQL.',
@@ -103,7 +106,7 @@ def run(scenario, dsn, application_factory=Application):
 
     def check(check_id, stage, version, operation, fn):
         start = time.monotonic()
-        item = dict(id=check_id, stage=stage, version=version, operation=operation)
+        item = dict(id=check_id, stage=stage, version=version, operation=operation.replace('customer', workload.entity))
         try:
             with conn.transaction():
                 fn()
@@ -136,15 +139,17 @@ def run(scenario, dsn, application_factory=Application):
         conn.execute(sql.SQL('SET search_path TO {}, pg_catalog').format(sql.Identifier(schema)))
         with conn.transaction():
             conn.execute(baseline)
+        if workload.initialize is not None:
+            workload.initialize(schema, dsn)
         report['postgres_version'] = conn.info.server_version
         if not check('applications_started', 'baseline', 'v1', 'Start independent old HTTP application',
                      lambda: start_application(OLD, 'v1')):
             return report
         if not check('baseline_read', 'baseline', 'v1', 'Read existing customer',
-                     lambda: equal(OLD.read(conn, 1), 'initial@example.test')):
+                     lambda: equal(OLD.read(conn, 1), workload.initial)):
             return report
         if not check('baseline_write', 'baseline', 'v1', 'Create and read customer',
-                     lambda: roundtrip(conn, OLD, 100)):
+                     lambda: roundtrip(conn, OLD, 100, workload.created)):
             return report
         if not check('migration', 'migration', '-', 'Apply candidate SQL',
                      lambda: conn.execute(migration)):
@@ -153,29 +158,29 @@ def run(scenario, dsn, application_factory=Application):
                      lambda: start_application(NEW, 'v2')):
             return report
         check('new_read', 'target', 'v2', 'Read migrated customer',
-              lambda: equal(NEW.read(conn, 1), 'initial@example.test'))
+              lambda: equal(NEW.read(conn, 1), workload.initial))
         check('new_write', 'target', 'v2', 'Create and read customer',
-              lambda: roundtrip(conn, NEW, 2))
+              lambda: roundtrip(conn, NEW, 2, workload.created))
         check('old_read', 'rollout', 'v1', 'Read migrated customer',
-              lambda: equal(OLD.read(conn, 1), 'initial@example.test'))
+              lambda: equal(OLD.read(conn, 1), workload.initial))
         check('old_write', 'rollout', 'v1', 'Create and read customer',
-              lambda: roundtrip(conn, OLD, 3))
+              lambda: roundtrip(conn, OLD, 3, workload.created))
 
         def old_to_new():
-            OLD.create(conn, 10, 'old-write@example.test')
-            equal(NEW.read(conn, 10), 'old-write@example.test')
+            OLD.create(conn, 10, workload.old_write)
+            equal(NEW.read(conn, 10), workload.old_write)
 
         def new_to_old():
-            NEW.create(conn, 11, 'new-write@example.test')
-            equal(OLD.read(conn, 11), 'new-write@example.test')
+            NEW.create(conn, 11, workload.new_write)
+            equal(OLD.read(conn, 11), workload.new_write)
 
         def new_update_to_old():
-            NEW.update(conn, 1, 'new-update@example.test')
-            equal(OLD.read(conn, 1), 'new-update@example.test')
+            NEW.update(conn, 1, workload.new_update)
+            equal(OLD.read(conn, 1), workload.new_update)
 
         def old_update_to_new():
-            OLD.update(conn, 1, 'old-update@example.test')
-            equal(NEW.read(conn, 1), 'old-update@example.test')
+            OLD.update(conn, 1, workload.old_update)
+            equal(NEW.read(conn, 1), workload.old_update)
 
         check('old_to_new', 'mixed', 'v1 → v2', 'Old creates; new reads', old_to_new)
         check('new_to_old', 'mixed', 'v2 → v1', 'New creates; old reads', new_to_old)
@@ -194,7 +199,7 @@ def run(scenario, dsn, application_factory=Application):
         check('rollback_read', 'app_rollback', 'v1', 'Read pre-existing data after rollout',
               lambda: equal(bool(OLD.read(conn, 1)), True))
         check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
-              lambda: equal(OLD.read(conn, 2), 'created@example.test'))
+              lambda: equal(OLD.read(conn, 2), workload.created))
         report['completed'] = True
     except psycopg.Error as exc:
         # Do not serialize exceptions: server messages can contain rows/credentials.
