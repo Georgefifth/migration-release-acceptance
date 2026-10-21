@@ -18,6 +18,12 @@ from .fastapi_launcher import SEED_ID
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def isolated_environment(environment):
+    # Do not forward CI job tokens or developer credentials into upstream apps.
+    required = ('PATH', 'DATABASE_URL', 'ACCEPTANCE_SCHEMA', 'ACCEPTANCE_DISPOSABLE_DB')
+    return {key: environment[key] for key in required if key in environment}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scenario', choices=['expand', 'breaking'], required=True)
@@ -28,7 +34,7 @@ def main():
 
     class UpstreamApplication(Application):
         def environment(self):
-            environment = super().environment()
+            environment = isolated_environment(super().environment())
             environment.update(
                 PGOPTIONS=f'-c search_path={self.schema},pg_catalog -c statement_timeout=5000 -c lock_timeout=2000',
                 PROJECT_NAME='Disposable upstream acceptance',
