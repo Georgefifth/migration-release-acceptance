@@ -12,6 +12,9 @@ JSON/Markdown/HTML evidence, and a GitLab Duo flow. This remains a synthetic
 reference harness, not a general migration platform or production deployment.
 Each HTTP request uses a separate database connection; responses follow commit.
 Rollback must stop both apps, restart v1, and verify a different process identity.
+A reviewed project-local application factory can supply the two adapters. The
+example remains synthetic; do not call it a customer installation. Do not build
+a generic plugin service or broaden scope before team validation.
 Mixed-version probes are sequential interleavings, not concurrent load tests.
 
 ## Development constraints
@@ -29,6 +32,7 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
 
 ## Quality and acceptance
 - Run `python -m unittest discover -s tests -v` for report/gate tests.
+- Run `python -m examples.verify_adapter` for integration and partial-startup cleanup.
 - Run `python -m acceptance.demo` against PostgreSQL to verify both fixtures.
 - Unsafe rename: new-version probes pass, old/mixed/rollback probes fail; gate BLOCK.
 - Expand with synchronization: all declared probes pass; gate GO_WITHIN_SCOPE.

@@ -24,13 +24,17 @@ class Application:
         self.directory = None
         self.opener = build_opener(ProxyHandler({}))
 
+    def command(self, ready_file):
+        """Override only for a trusted app implementing the documented test protocol."""
+        return [sys.executable, '-m', 'acceptance.http_app', '--version', self.version,
+                '--ready-file', str(ready_file)]
+
     def start(self):
         self.directory = tempfile.TemporaryDirectory(prefix='acceptance-http-')
         ready = Path(self.directory.name) / 'ready.json'
         environment = dict(os.environ, ACCEPTANCE_SCHEMA=self.schema, DATABASE_URL=self.dsn)
         self.process = subprocess.Popen(
-            [sys.executable, '-m', 'acceptance.http_app', '--version', self.version,
-             '--ready-file', str(ready)], env=environment,
+            self.command(ready), env=environment,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         deadline = time.monotonic() + 15
         while not ready.exists():

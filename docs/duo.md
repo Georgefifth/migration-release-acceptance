@@ -24,7 +24,7 @@ account. The only configured trigger is Mention. The service account is
   do not inherit this acceptance result; rerun on the final head before release.
 
 The unsafe rename was separately verified by CI at commit `a2e2417f` with 8
-compatibility failures. It has not yet received a current-head Duo review.
+compatibility failures. That historical run was followed by the HTTP unsafe demonstration documented below.
 
 The hackathon catalog rejects component-level `max_cycles`, even though GitLab's
 public upstream flow registry documents it. The checked-in configuration omits
@@ -34,7 +34,13 @@ it and was accepted by the catalog. Runtime platform validation is authoritative
 The current harness records 16 HTTP and lifecycle checks. The 13-check Duo run
 above predates this change and does not verify the HTTP milestone. The checked-in
 flow now reads scope limits from the actual report and was saved to the enabled
-catalog as v1.1.0. An actual HTTP-scope Duo session is still pending.
+catalog as v1.1.0. The actual HTTP-scope sessions completed successfully at the named commits below.
+These remain historical evidence; later commits need their own acceptance run.
+
+- Compatible HTTP head `8388d156b7878ccd1e61b0f69986d9c714890f1d`: session
+  9765744, MR !1 note 4052261568, job 17324294284, 16/16 PASS, GO_WITHIN_SCOPE.
+- Unsafe HTTP head `aaa01d4880269f45129e7dcee85fc72b14111907`: session
+  9765659, MR !2 note 4052241066, job 17324276746, 8 PASS / 8 FAIL, BLOCK.
 
 HTTP CI evidence at commit `ce5f705ce16b5689ac4e36cdfb0f720adcdf7d29`:
 - Expand: pipeline 2968622548, job 17324250626, all 16 checks pass.

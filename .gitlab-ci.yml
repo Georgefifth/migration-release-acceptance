@@ -55,6 +55,13 @@ fixture-regressions:
     # This job verifies expected failures; it is NOT a release approval.
     - python -m acceptance.demo
 
+adapter-contract:
+  extends: .postgres
+  stage: test
+  script:
+    # Integration smoke tests, including partial-startup cleanup; not release approval.
+    - python -m examples.verify_adapter
+
 release-acceptance:
   extends: .postgres
   stage: acceptance

@@ -47,7 +47,7 @@ def roundtrip(conn, adapter, customer_id):
     equal(adapter.read(conn, customer_id), value)
 
 
-def run(scenario, dsn):
+def run(scenario, dsn, application_factory=Application):
     import psycopg
     from psycopg import sql
 
@@ -60,6 +60,8 @@ def run(scenario, dsn):
     report = {
         'schema_version': 2,
         'transport': 'HTTP',
+        'application_factory': getattr(application_factory, '__module__', 'unknown') + ':'
+        + getattr(application_factory, '__qualname__', type(application_factory).__qualname__),
         'applications': [],
         'run_id': str(uuid.uuid4()),
         'scenario': scenario,
@@ -80,8 +82,24 @@ def run(scenario, dsn):
     schema = 'acceptance_' + uuid.uuid4().hex
     conn = None
     created = False
-    OLD = Application('v1', schema, dsn)
-    NEW = Application('v2', schema, dsn)
+    # A reviewed project-local callable may supply the two application adapters.
+    # Register before starting so cleanup also covers partial startup failures.
+    applications = []
+    OLD = NEW = None
+
+    def start_application(app, version, phase=None):
+        identity = app.start()
+        if (not isinstance(identity, dict) or identity.get('version') != version
+                or identity.get('transport') != 'HTTP'
+                or not isinstance(identity.get('pid'), int)
+                or identity['pid'] != app.process.pid or app.process.poll() is not None):
+            raise RuntimeError('Invalid application lifecycle evidence')
+        # Adapters cannot accidentally put extra fields (rows/DSNs) in artifacts.
+        evidence = dict(version=version, pid=identity['pid'], transport='HTTP')
+        if phase:
+            evidence['phase'] = phase
+        report['applications'].append(evidence)
+        return evidence
 
     def check(check_id, stage, version, operation, fn):
         start = time.monotonic()
@@ -101,6 +119,14 @@ def run(scenario, dsn):
         return item['status'] == 'PASS'
 
     try:
+        OLD = application_factory('v1', schema, dsn)
+        applications.append(OLD)
+        NEW = application_factory('v2', schema, dsn)
+        applications.append(NEW)
+        for application in applications:
+            for method in ('start', 'stop', 'read', 'create', 'update'):
+                if not callable(getattr(application, method, None)):
+                    raise TypeError('Application adapter is missing a required method')
         # Caller must supply a dedicated disposable DB; SQL fixtures are trusted code.
         conn = psycopg.connect(dsn, autocommit=True, connect_timeout=10)
         conn.execute("SET statement_timeout = '5s'")
@@ -112,7 +138,7 @@ def run(scenario, dsn):
             conn.execute(baseline)
         report['postgres_version'] = conn.info.server_version
         if not check('applications_started', 'baseline', 'v1', 'Start independent old HTTP application',
-                     lambda: report['applications'].append(OLD.start())):
+                     lambda: start_application(OLD, 'v1')):
             return report
         if not check('baseline_read', 'baseline', 'v1', 'Read existing customer',
                      lambda: equal(OLD.read(conn, 1), 'initial@example.test')):
@@ -124,7 +150,7 @@ def run(scenario, dsn):
                      lambda: conn.execute(migration)):
             return report
         if not check('new_application_started', 'target', 'v2', 'Start independent new HTTP application',
-                     lambda: report['applications'].append(NEW.start())):
+                     lambda: start_application(NEW, 'v2')):
             return report
         check('new_read', 'target', 'v2', 'Read migrated customer',
               lambda: equal(NEW.read(conn, 1), 'initial@example.test'))
@@ -159,9 +185,8 @@ def run(scenario, dsn):
             previous_pid = OLD.process.pid
             equal(NEW.stop(), True)
             equal(OLD.stop(), True)
-            identity = OLD.start()
+            identity = start_application(OLD, 'v1', phase='rollback')
             equal(identity['pid'] != previous_pid, True)
-            report['applications'].append(dict(identity, phase='rollback'))
 
         if not check('rollback_restart', 'app_rollback', 'v1',
                      'Stop both apps; restart v1; verify new process identity', restart_old):
@@ -178,7 +203,7 @@ def run(scenario, dsn):
         report['error'] = {'kind': type(exc).__name__}
     finally:
         processes_stopped = True
-        for app in (OLD, NEW):
+        for app in applications:
             try:
                 processes_stopped = app.stop() and processes_stopped
             except Exception:
