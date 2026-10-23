@@ -41,6 +41,9 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
 - Baseline, migration, infrastructure, or cleanup failures: INCONCLUSIVE, exit 2.
 - Compatibility failures: BLOCK, exit 1. Never mask either result as success.
 - Reports identify commit, fixture digest, operations, SQLSTATE, and limitations.
+- The report UI preserves recorded verdicts. Compare only matching, complete
+  commit/workload/adapter/provenance/probe evidence; mismatches must remain explicit.
+- Escape all displayed evidence. Keep HTML reports offline with native controls.
 - CI fixture self-tests and the selected-scenario release gate are separate jobs.
 - Report missing evidence honestly. Do not claim the hackathon integration works
   until an actual GitLab Duo session has completed.

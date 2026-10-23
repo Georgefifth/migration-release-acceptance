@@ -29,9 +29,24 @@ export ACCEPTANCE_DISPOSABLE_DB=yes
 .venv/bin/python -m acceptance.runner --scenario breaking
 ```
 
-The last command intentionally exits **1**. Open `reports/breaking.html`, or use
+The last command intentionally exits **1**. Open `reports/breaking.html` for
+stage-by-stage findings and a failures-only filter. After both runs, open
+`reports/comparison.html` to compare matching evidence. These pages work offline
+without JavaScript or external assets. You can also use
 the equivalent JSON/Markdown. Exit **0** means `GO_WITHIN_SCOPE`; **2** means
 `INCONCLUSIVE`. No raw rows, database URLs, or server exception messages are saved.
+
+## Rebuild a report from saved evidence
+No database or application process is needed to review an existing run:
+
+```sh
+python -m acceptance.report reports/breaking.json reports/expand.json --output reports/review
+```
+
+Open `reports/review/comparison.html`. The command preserves the recorded
+verdicts; its successful exit only means files were rendered. Input is checked
+before output is written, and two runs of the same candidate are rejected.
+Incomplete or mismatched evidence remains explicit in the comparison page.
 
 ## GitLab CI
 Push a branch or open an MR. Five jobs run:
