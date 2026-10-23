@@ -1,59 +1,57 @@
-# English demo script — working recording draft
+# English demo narration
 
-Target: approximately 2 minutes 30 seconds at a conversational pace. This is a
-script, not a recorded or submitted video. Use the linked verified commits below
-until the newer adapter integration has passed its own PostgreSQL CI.
+Target: approximately 2 minutes 30 seconds. Rehearse and time the actual take.
+This is a prepared script, not a recorded video or a measured presentation time.
+Use the FastAPI reports at evidence commit `7a07317fea5503acf40ee1524f3cff98f6905e54`.
+See [recording steps](recording-runbook.md) and [evidence identities](demo-evidence.json).
 
-## 0:00 — The release problem
+## 0:00 — Problem and audience
 
-A database migration can pass, and the new application can pass its tests, while
-your release still breaks. In a rolling deployment, the old version is still
-serving requests. And if you roll back the application, it has to work with the
-schema that is already there.
+A schema migration can succeed, and the new application can pass its tests,
+while a rolling release still breaks old application requests. Returning to the
+old application may not help, because the database schema has already changed.
 
-We built a PostgreSQL migration acceptance harness inside GitLab to make that
-compatibility visible before someone decides to merge or deploy.
+We built a PostgreSQL compatibility acceptance tool for engineers who need to
+check that overlap before deciding to merge or deploy.
 
-## 0:25 — Show the failing release
+## 0:25 — Show the real API example
 
-Here is an intentionally unsafe migration: rename email to contact_email.
-The migration succeeds. The new application starts, reads, and writes successfully.
-But those green checks miss the old application.
+This example uses a pinned public FastAPI backend, including its actual login
+and item create, read, and update routes. We introduce a hypothetical change:
+the new version stores an item's title in a column called display_title.
+This is our test change, not a defect reported in the upstream project.
 
-Our acceptance job also sends real HTTP requests to independent old and new
-application processes sharing a disposable PostgreSQL database. It checks reads,
-writes, and data exchanged between versions.
+In the breaking candidate, the migration and new-version requests pass.
+But the old application still expects the original title column. Eight old,
+mixed-version and rollback data checks fail with SQLSTATE 42703: undefined column.
 
-The result is BLOCK: eight compatibility checks fail with SQLSTATE 42703, an
-undefined column. We also stop both applications and restart the old version.
-The restart succeeds, but its requests still fail. Rolling back the application
-does not restore compatibility with this schema.
+We stop both application processes and restart the old version. Its process
+starts successfully, but its requests still fail. The result is BLOCK.
 
-## 1:15 — Show the compatible alternative
+## 1:10 — Show the alternative and the report
 
-The alternative keeps both representations and synchronizes them during the
-transition. In this reference example, all sixteen declared checks pass,
-including old-version requests and reads after the old process restarts.
+The compatible candidate keeps both columns and synchronizes their values during
+this transition. All sixteen declared checks pass, including requests after the
+old application restarts. The result is GO_WITHIN_SCOPE.
 
-The result is GO_WITHIN_SCOPE. It identifies the exact commit, fixture, and run,
-and provides the same evidence as JSON, Markdown, and HTML.
+The comparison shows the same operations for both candidates. Open the breaking
+run and select Failures to inspect the affected requests. The report retains
+the source commit, run identity and limitations. It also works offline.
 
-## 1:45 — Show GitLab Duo's role
+For a shorter hands-on trial, one command starts its own disposable database,
+runs the synthetic reference applications, generates reports and cleans up.
+That short trial is separate from this real FastAPI integration.
 
-GitLab CI determines the result. Our custom GitLab Duo flow reads the current
-merge request and acceptance job, checks that their commit identifiers match,
-and posts an explanation with the failed operations and evidence links.
+## 1:55 — Show GitLab and explain Duo
 
-A second component independently rereads the merge request and job log before
-publishing. Duo explains the evidence; it does not invent a safety score or merge
-the request.
+GitLab CI executes the checks and stores the evidence. Our custom Duo flow can
+check commit identities and explain acceptance results in the merge request.
+These linked Duo notes are actual historical runs on their named older commits;
+they are not reviews of the FastAPI results shown here.
 
-## 2:10 — State the limits and next validation
+## 2:15 — Limits and the next question
 
-These are synthetic applications and sequential mixed-version requests. We have
-not established concurrent-load behavior or production safety.
-
-Our next question is practical: does this workflow give a small PostgreSQL team
-useful coverage with less setup or review effort than its existing CI? We have
-prepared an adapter example and a comparison protocol, but real-team adoption is
-not yet validated.
+The data is synthetic and the requests are sequential. This does not establish
+production safety, concurrent behavior or lock duration. No merge or deployment
+is automatic. Our next test is whether another team can set it up independently
+and gain useful evidence compared with its existing CI.

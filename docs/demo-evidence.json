@@ -1,0 +1,69 @@
+{
+  "evidence_commit": "7a07317fea5503acf40ee1524f3cff98f6905e54",
+  "verified_date": "2026-10-23",
+  "pipeline": {
+    "id": 2980254199,
+    "status": "success",
+    "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/pipelines/2980254199"
+  },
+  "unit_tests": 24,
+  "upstream": {
+    "workload": "fastapi-upstream-items",
+    "repository": "fastapi/full-stack-fastapi-template",
+    "source_commit": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+    "job_id": 17409532941,
+    "job_url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/jobs/17409532941",
+    "artifacts_url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/jobs/17409532941/artifacts/browse/reports/upstream/",
+    "runs": [
+      {
+        "scenario": "breaking",
+        "run_id": "276923ed-cd61-4ec3-890d-cb6baf0b41a7",
+        "verdict": "BLOCK",
+        "checks": 16,
+        "passed": 8,
+        "cleanup_ok": true
+      },
+      {
+        "scenario": "expand",
+        "run_id": "fc3ab6c1-612e-4c72-b890-a059c115c8d5",
+        "verdict": "GO_WITHIN_SCOPE",
+        "checks": 16,
+        "passed": 16,
+        "cleanup_ok": true
+      }
+    ]
+  },
+  "reference_trial": {
+    "workload": "customer-reference",
+    "source": "Clean public checkout of evidence_commit; developer-run verification, not an independent customer trial",
+    "normal_exit": 0,
+    "interrupted_exit": 130,
+    "external_database_ignored": true,
+    "no_trial_containers_remaining": true,
+    "prior_reports_preserved": true,
+    "cold_download_timing_measured": false
+  },
+  "historical_duo": [
+    {
+      "scenario": "breaking",
+      "commit": "aaa01d4880269f45129e7dcee85fc72b14111907",
+      "note_id": 4052241066,
+      "job_id": 17324276746,
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/merge_requests/2#note_4052241066"
+    },
+    {
+      "scenario": "expand",
+      "commit": "215544ba0ceffb8532fdd3e00d342431073405ee",
+      "note_id": 4059512052,
+      "job_id": 17353335428,
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/merge_requests/1#note_4059512052"
+    }
+  ],
+  "limits": [
+    "Duo notes cover their named older commits only.",
+    "No demo video has been recorded or submitted.",
+    "No independent customer validation or human setup-time measurement.",
+    "Synthetic records, sequential requests; no production/concurrency/lock-duration assurance.",
+    "Documentation updates do not transfer these results to a different source commit."
+  ]
+}

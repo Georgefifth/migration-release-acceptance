@@ -1,38 +1,52 @@
 # Product status
 
-## Current product form
-A developer tool: Python acceptance runner, reviewed application adapters, and
-JSON/Markdown/HTML reports. GitLab CI runs the tool; Duo explains its evidence.
-The product's core is the application compatibility check, not GitLab setup.
+## Verified snapshot
 
-## Implemented and previously verified
-At commit `215544ba0ceffb8532fdd3e00d342431073405ee`, pipeline 2972546755:
-- Ten gate, report, HTTP error-boundary and cleanup unit tests pass.
-- Synthetic v1/v2 HTTP app acceptance: sixteen declared checks pass for expand.
-- Unsafe rename is blocked by the fixture regressions.
-- A project-local adapter runs both candidates; partial startup failure is
-  INCONCLUSIVE and cleans its process/schema.
-- Duo independently reads current-head evidence and posts a scoped report.
+Evidence source: commit `7a07317fea5503acf40ee1524f3cff98f6905e54`,
+[pipeline 2980254199](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/pipelines/2980254199),
+verified on 2026-10-23. Later commits require their own CI; these identifiers remain
+fixed. Exact upstream runs are in [demo evidence](demo-evidence.json).
 
-The core implementation lives in `acceptance/runner.py`, `http_client.py`,
-`http_app.py`, `report.py` and the SQL fixtures. These are executable source code,
-not just a pipeline configuration. `examples/project_acceptance.py` demonstrates
-the reviewed adapter boundary.
+## Implemented
 
-## Locally integration-verified public application case
-The FastAPI upstream case adds a pinned public backend, real login/item routes,
-a derived v2 column mapping, business-specific fixture initialization and an
-adapter for the real API. Local PostgreSQL/API integration passed on 2026-10-21: the breaking candidate
-produced 8 compatibility failures and BLOCK; the expansion passed all sixteen
-checks. The original fixture/adapter regressions also pass. Remote CI for these
-working-tree changes is still pending; this is not real-team adoption evidence.
+- Python acceptance runner, reviewed application/workload adapter boundary, and
+  sixteen old/new/mixed-version/application-rollback checks through HTTP.
+- Synthetic reference fixtures and a pinned public FastAPI backend using its real
+  login and item CRUD routes. A deliberately introduced column-mapping change
+  produces eight compatibility failures; the expansion passes all sixteen checks.
+- Fail-closed deterministic gate, source/fixture/run identities and cleanup evidence.
+- Offline JSON/Markdown/HTML reports, failure filtering and guarded comparison.
+- Database-free rendering of saved evidence; invalid or mismatched evidence is
+  not silently promoted into a successful comparison.
+- A first-trial command that owns its temporary Python environment, labeled Docker
+  database, loopback port and report directory. External database settings are ignored.
+- Five successful CI jobs and 24 unit tests at the verified snapshot.
 
-## Product experience still to establish
-The current report is a results page; configuration is still performed in code.
-There is no independent interactive setup interface. We have not established
-that adapter setup is faster or clearer than a team's existing CI tests.
+A clean public checkout successfully ran the documented trial and produced
+commit-bound comparison reports. A second run was interrupted during application
+execution: exit 130, no labeled trial containers remained, previous reports were
+preserved. The Docker image was cached; no human or cold-download setup-time
+benchmark was established. This developer-run check is not customer validation.
 
-The next product decision should come from one actual business integration and
-team feedback: which setup steps can be removed, which missing checks matter,
-and whether the report changes a release decision. Avoid adding a hosted
-control plane or more GitLab configuration to substitute for that evidence.
+GitLab Duo has actual completed reviews on older named commits. The current
+FastAPI evidence has not received a new Duo review. See [recording steps](recording-runbook.md)
+for exact historical notes; do not describe them as current-head reviews.
+
+## Ready for review
+
+The [first-trial guide](first-trial.md), [English narration](demo-script.md) and
+[recording walkthrough](recording-runbook.md) provide a reproducible introduction.
+The video has not been recorded or submitted. No MR has been merged or production
+system deployed as part of this work.
+
+## Still unvalidated
+
+The current form is a developer CLI and offline results pages. Business integration
+requires reviewed fixtures, startup steps and an adapter. There is no independent
+interactive setup interface. Human setup/review time, independent team use and
+savings versus ordinary CI remain unmeasured.
+
+Next, run the [team validation session](team-validation.md) with consented,
+anonymized observations. Learn whether the report changes a real release decision
+and whether integration costs less than the team's alternative. Do not substitute
+a hosted control plane, more features, or more GitLab setup for this evidence.

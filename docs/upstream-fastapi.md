@@ -73,9 +73,11 @@ virtualenv and disposable PostgreSQL 16.15 container:
 Evidence is in `reports/local-upstream/` and
 `reports/local-upstream-verification.json`, including actual run IDs and the
 hash of the tested source files. These are local working-tree results, not
-commit-bound GitLab CI evidence. The new upstream CI job still needs to run.
-Final remote run links belong in the MR description so recording evidence does
-not change the commit under test.
+commit-bound GitLab CI evidence. The case subsequently passed GitLab CI at
+commit `7a07317fea5503acf40ee1524f3cff98f6905e54`, pipeline 2980254199,
+job 17409532941. Both expected outcomes and cleanup were verified. See
+[the demo evidence identities](demo-evidence.json) for exact run IDs. This is a
+fixed historical snapshot; later commits need their own checks.
 
 Only the item CRUD workflow is covered. Login provides real authentication, but
 password reset, emails, frontend UI, delete, authorization boundaries, concurrent

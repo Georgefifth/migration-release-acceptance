@@ -86,6 +86,9 @@ replication or performance claim is made. Rollback does not undo the database.
 Passing fixture checks is not a general guarantee of migration safety.
 
 ## Documentation
+- [Demo walkthrough and verified evidence](docs/recording-runbook.md)
+- [English demo narration](docs/demo-script.md)
+- [Current product status and remaining questions](docs/project-status.md)
 - [Upstream application case](docs/upstream-fastapi.md)
 - [Application adapter integration](docs/application-integration.md)
 - [Team validation protocol](docs/team-validation.md)
