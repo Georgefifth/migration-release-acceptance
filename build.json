@@ -1,0 +1,45 @@
+{
+  "renderer_version": "0.1.4",
+  "renderer_sha256": "d735fb6366ce02399601381754d0e88fcb237666682fde3409febbf93edaeb53",
+  "sample_evidence_commit": "2ec32c7eb316c4f1cedf6e92a27b3e240de55c60",
+  "static_only": true,
+  "samples": [
+    {
+      "candidate": "breaking",
+      "run_id": "764d92a0-8bda-487d-b198-aadae9eb899f",
+      "verdict": "BLOCK"
+    },
+    {
+      "candidate": "expand",
+      "run_id": "a4e4e550-089b-47dd-a32f-2cde77b4e02e",
+      "verdict": "GO_WITHIN_SCOPE"
+    },
+    {
+      "candidate": "item-title-storage",
+      "run_id": "8b082fed-6180-4ac4-8a12-ec15e71067e0",
+      "verdict": "GO_WITHIN_SCOPE"
+    },
+    {
+      "candidate": "rename-title",
+      "run_id": "ff2362fa-c0da-4bf8-b949-e3e995104eef",
+      "verdict": "BLOCK"
+    }
+  ],
+  "files": {
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "index.html": "88102648367a725fff32ded9573a151f205ee8559bb5ca6c4d0d3a23177192b6",
+    "reports/breaking.html": "1368850c709a825a6dc919c23af415f05d815c084c44ded16b6d9f6be26afa66",
+    "reports/breaking.json": "0d51a02ad8d1cf74a1ebfc479ae623549ffa056bbf5ec526ef121570120c72d6",
+    "reports/breaking.md": "6003f359e10a5d2064c05d245a0193b6f7d9e71668fe7de1bed8757d5ab83f06",
+    "reports/comparison.html": "79ae51cb6d82788e2378c01e4239f1c9fc98ec83dfe7b33bbb5e1cf357b64346",
+    "reports/expand.html": "209ccc971da7796b326266b5699b74ae0d234e321b387a7116152e636ec68044",
+    "reports/expand.json": "1d179737ee9241c4b6756092318d92fced7d1b0b6d3f286fc0d6fb07abcfb4cd",
+    "reports/expand.md": "b5ebed71396ac6f20bc79100ea86628cdd52f8b032437fb035ad847af6b66c58",
+    "reports/item-title-storage.html": "4e5721a0bab8a34f8565b0f5166a81af0c209dc71473a1ea0ae8e62b60443e02",
+    "reports/item-title-storage.json": "9ba7f79aa332c5adc37be70093d87e54371104dcf37868842191e722d053d109",
+    "reports/item-title-storage.md": "d6c0c8f9f8fd97556b827c17e1c090b42e91395f29f99b040d2c8acc5cede906",
+    "reports/rename-title.html": "1c42870e2e3000cfb4afe40dfd479faff9bbdabe9a432d4ac4d31191e967e0ac",
+    "reports/rename-title.json": "74611313f84ed3783dbc7761b791afd70215bc7074916b03240cb30b05efb572",
+    "reports/rename-title.md": "1cd27af6d67cb861092852bc2586e21caf6f7324ece9cdc69de41ecce2dd5b36"
+  }
+}
