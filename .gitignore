@@ -1,0 +1,12 @@
+.venv/
+.uv-cache/
+__pycache__/
+*.pyc
+reports/
+.env
+.upstream/
+build/
+dist/
+*.egg-info/
+
+site/
