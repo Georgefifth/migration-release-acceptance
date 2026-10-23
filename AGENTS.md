@@ -52,6 +52,9 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   sandbox. Preflight must not construct adapters or contact a database. Named
   candidate SQL must retain the same gate, probe set and fixture provenance.
 - CI fixture self-tests and the selected-scenario release gate are separate jobs.
+- release-acceptance uses the reviewed real FastAPI integration and preserves
+  project-command exit codes. Never call the expected-outcome verifier in that
+  release job. Verify compatible and blocked pipelines at the same source SHA.
 - Distribution changes must pass package-contract: a non-editable wheel installed
   into a fresh venv, invoked from a separate generated project without the source
   checkout on PYTHONPATH. Keep bundled SQL inside acceptance/fixtures and include

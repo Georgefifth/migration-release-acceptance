@@ -10,13 +10,21 @@ Require an isolated package-contract CI job with packaged SQL, preflight, actual
 HTTP/DB execution, correct release exits and offline rendering. A source-tree-only
 test is insufficient. Do not publish on PyPI as part of this iteration.
 
-## Current iteration: actionable failure evidence
+## Completed technical milestone: actionable failure evidence
 
 Record the actual failed step and distinguish application stop, schema removal
 and connection close. Explain what to check next without inventing a root cause
 or changing verdicts. Validate with controlled database/startup/SQL/cleanup faults,
 including passing CRUD with failed cleanup. Preserve conservative behavior for
 missing evidence and keep private exception content out of artifacts.
+
+## Current iteration: use application evidence in the actual release job
+
+The real FastAPI integration must feed release-acceptance directly, not only a
+green expected-outcome self-test. Verify both selected candidates at the same
+source commit: the compatible candidate passes and the deliberately breaking
+candidate fails the job/pipeline with BLOCK. Preserve reports on failure and
+document the command for a project's existing CI without adding deployment.
 
 ## Next: independently reproducible project setup
 

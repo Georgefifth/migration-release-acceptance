@@ -41,6 +41,9 @@ expected verdict is observed. They are harness tests, not release approval.
 Each report preserves the actual BLOCK/GO verdict. Reports are in
 `reports/upstream/`; generated upstream trees stay in `.upstream/` and are ignored.
 The `upstream-fastapi` CI job runs both cases in a clean checkout.
+The separate `release-acceptance` job now runs one selected real-app candidate
+with release exit semantics. See [release CI integration](ci-integration.md);
+the known-outcome verifier commands above remain self-tests.
 
 ## Changes and setup cost to record
 - One application-model field mapping change and its import in the generated v2

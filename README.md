@@ -102,8 +102,12 @@ Push a branch or open an MR. Six jobs run:
    FastAPI backend, with a reviewed column-mapping change. Integration evidence,
    not real-team adoption or approval of arbitrary migrations.
 6. `release-acceptance`: checks the pipeline input `migration_scenario` (default
-   `expand`). Selecting `breaking` makes the release gate fail. Download reports
-   from job artifacts. Inputs are restricted to these two reference fixtures.
+   `expand`) against the real pinned FastAPI application's login and item CRUD.
+   `expand` selects item-title-storage; `breaking` selects rename-title and must
+   fail the job with exit 1. Reports are retained even on failure in reports/release.
+   This job preserves release exits; it does not call the known-outcome self-test.
+   See [release CI integration](docs/ci-integration.md) for reproduction and adapting
+   the blocking command to a reviewed project.
 
 ## Coverage and limitations
 Baseline read/write, migration execution, target-version read/write, old-version
@@ -114,6 +118,7 @@ replication or performance claim is made. Rollback does not undo the database.
 Passing fixture checks is not a general guarantee of migration safety.
 
 ## Documentation
+- [Use application evidence in release CI](docs/ci-integration.md)
 - [Understand failures and cleanup](docs/troubleshooting.md)
 - [Install into your project](docs/installation.md)
 - [Iteration plan and release boundaries](docs/iteration-plan.md)

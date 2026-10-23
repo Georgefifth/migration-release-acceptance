@@ -1,7 +1,7 @@
 spec:
   inputs:
     migration_scenario:
-      description: 'Trusted reference migration to accept'
+      description: 'Reviewed FastAPI candidate: expand keeps both versions working; breaking deliberately renames the old column'
       type: string
       default: expand
       options: [expand, breaking]
@@ -74,15 +74,18 @@ package-contract:
     expire_in: 14 days
     paths: [dist/, reports/]
 
-upstream-fastapi:
+.upstream:
   extends: .postgres
   image: python:3.14-slim
-  stage: test
   before_script:
     - pip install uv==0.12.5
     - python -m integrations.prepare_fastapi
     - uv sync --project .upstream/source --package app --frozen --no-dev
     - .upstream/source/.venv/bin/python -m acceptance.wait_db
+
+upstream-fastapi:
+  extends: .upstream
+  stage: test
   script:
     # Fixed upstream revision + reviewed candidate change; integration self-test.
     - .upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --check
@@ -92,8 +95,8 @@ upstream-fastapi:
     - .upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --candidate item-title-storage --output reports/upstream-project
 
 release-acceptance:
-  extends: .postgres
+  extends: .upstream
   stage: acceptance
   script:
-    # A breaking candidate really fails this job (exit 1); errors exit 2.
-    - python -m acceptance.runner --scenario "$MIGRATION_SCENARIO"
+    # Real login/item CRUD, preserving 0/1/2. Never call the expected-outcome self-test here.
+    - .upstream/source/.venv/bin/python -m integrations.release_acceptance --scenario "$MIGRATION_SCENARIO"
