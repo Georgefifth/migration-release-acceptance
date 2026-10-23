@@ -1,32 +1,39 @@
 # Report experience
 
-Audience: the engineer reviewing a PostgreSQL migration. The primary job is to
-locate broken application behavior, then inspect evidence and compare candidates.
+Audience: the PostgreSQL engineer reviewing old/new application overlap. Locate
+failed behavior, inspect a specific execution phase and verify source/cleanup.
+The report is evidence, never an automatic deployment approval.
 
-Palette: white #ffffff, field #f3f6fb, ink #253957, link #2e58c4,
-failure #a23743, success #286451. Use Aptos/Segoe UI/Arial for readable interface
-text and a monospace only for source identifiers. Keep all assets offline.
+Palette: Paper #fbfcfe, Mist #e9f0f5, Ink #193647, Waterline #246b78,
+Issue #a03446, Pass #246148. DejaVu Sans/Verdana for readable evidence;
+monospace only for actual commit/probe/SQLSTATE identifiers. No external assets.
 
-Layout, left aligned:
+The ordered execution route is the single strong visual device. Its six native
+radio labels filter phase evidence, including passing rows even when the run
+opens in Failures. All checks restores every recorded row. Numbers correspond
+to actual ordered phases, not decorative markers. Filter labels/counts remain
+literal; incomplete phases say Not run and expose an explicit empty state.
 
-    Run identity                         JSON / Markdown
-    Recorded verdict + plain-language finding
-    Baseline — Migration — New app — Old app — Mixed — Rollback
-    First failure / next investigation
-    All checks | Failures     operation evidence table
-    Source, run identity and limitations
+    identity / evidence downloads
+    verdict + specific finding / completion and cleanup facts
+    baseline - migration - new - old - mixed - rollback
+    bounded investigation guidance
+    All checks | Failures
+    operation + stage/version       result        SQLSTATE
+    source and cleanup disclosures
+    declared scope
 
-The stage strip is an actual sequence of executed checks, not decorative steps.
-It is the one strong visual feature; surrounding content stays quiet. Status is
-always expressed in words as well as color. Avoid a dashboard card grid, large
-score, invented risk percentage, or automatic production approval.
+Failed runs default to Failures; passing/zero-check runs default to All checks.
+This removes a filter-selection step, not all scrolling. A phase selection is
+one action; reading rows may still require scrolling. The three-column evidence
+table retains stage/version as operation metadata so mobile review does not
+require a horizontal pan. Preserve native keyboard radio behavior, 44px primary
+control targets, source/details disclosure, print visibility and a skip link.
 
-Review: a generic developer dashboard would emphasize build counts and charts.
-This report instead leads with the specific migration/application contrast and
-keeps the operation, app version and SQLSTATE together. A two-run comparison
-requires matching commit, workload, adapter, provenance and complete probe sets.
-Never present different or incomplete evidence as a verified before/after pair.
+HTML contains no JavaScript, external fonts or network assets. Evidence remains
+escaped and saved JSON/verdicts are unchanged by view filters. Compare only
+matching complete source/workload/adapter/provenance/probe evidence. No dashboard,
+risk percentage, motion or automatic repair is introduced.
 
-Use native disclosure and radio controls. Reports work without JavaScript,
-external fonts or a server; all evidence is HTML-escaped. Links allow only HTTP(S)
-for supplied pipeline URLs. Mobile tables scroll inside the report, not the page.
+See [research, baseline and acceptance plan](ux-improvement-plan.md). Developer
+browser measurements and task checks are not human usability or adoption evidence.

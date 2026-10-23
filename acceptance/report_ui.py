@@ -7,24 +7,49 @@ from .diagnostics import troubleshooting
 
 
 STYLE = '''
-:root{--paper:#fff;--field:#f3f6fb;--ink:#253957;--link:#2e58c4;--fail:#a23743;--pass:#286451}
-*{box-sizing:border-box}body{margin:0;background:var(--field);color:var(--ink);font:16px/1.55 Aptos,"Segoe UI",Arial,sans-serif}
-main{max-width:1180px;margin:32px auto;background:var(--paper);padding:36px 44px 28px;border-top:5px solid var(--ink)}
-a{color:var(--link);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}a:focus-visible,summary:focus-visible,input:focus-visible+label{outline:3px solid var(--link);outline-offset:4px}
-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;border-bottom:1px solid #dce3ee;padding-bottom:22px}header p{margin:0}nav{display:flex;flex-wrap:wrap;gap:18px;font-size:14px}
-h1{font-size:clamp(26px,3.5vw,38px);line-height:1.2;letter-spacing:-.025em;font-weight:650;max-width:820px;margin:18px 0 14px}
-h2{font-size:21px;line-height:1.3;margin:30px 0 14px}h3{font-size:16px;margin:0 0 6px}p{max-width:78ch}small,.muted{font-size:14px;color:#586981}.muted{margin-top:6px}
-code,pre{font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;overflow-wrap:anywhere}pre{white-space:pre-wrap;background:var(--field);padding:16px;border-radius:4px}
-.verdict{display:inline-block;font-size:14px;font-weight:700;padding:4px 10px;border:1px solid currentColor;border-radius:4px;margin-top:28px}.pass{color:var(--pass)}.fail{color:var(--fail)}.unknown{color:var(--ink)}
-.facts{display:flex;flex-wrap:wrap;gap:12px 30px;margin:22px 0 28px}.facts span{font-size:14px}.facts strong{font-size:20px;margin-right:5px;font-weight:650}
-.stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:24px 0 28px;padding:0;list-style:none;gap:4px}.stages li{background:var(--field);padding:13px 12px;border-bottom:4px solid #a9b6ca;min-height:97px}.stages .pass{border-color:var(--pass)}.stages .fail{border-color:var(--fail)}.stages b{display:block;color:var(--ink);font-weight:600;font-size:15px}.stages small{display:block;margin-top:6px;font-size:12px}
-.finding{overflow-wrap:anywhere;border-left:4px solid var(--fail);background:#fcf5f6;padding:16px 20px;margin:24px 0}.finding p{margin:3px 0}.finding.neutral{border-color:var(--link);background:var(--field)}
-.check-region>input{accent-color:var(--link);margin:0 6px 0 0}.check-region>label{font-size:14px;margin-right:22px;cursor:pointer}.table-shell{overflow-x:auto;margin-top:16px;border:1px solid #dce3ee;border-radius:5px}table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}th{font-weight:600;background:var(--field);padding:12px 14px;border-bottom:1px solid #cbd5e4;white-space:nowrap}td{padding:13px 14px;border-bottom:1px solid #e4e9f1;vertical-align:top}tr:last-child td{border-bottom:0}td p{margin:0}td small{display:block;font-size:12px;margin-top:4px}.check-id{color:#65748b;font-size:11px}td:nth-last-child(2){white-space:nowrap}.result{font-weight:650}.result::before{content:'●';font-size:9px;margin-right:6px}
-#fail-only:checked~.table-shell tr[data-result="PASS"]{display:none}#fail-only:checked~.empty-note{display:block}.empty-note{display:none;font-size:14px;margin-top:14px}
-details{margin:18px 0;border:1px solid #dce3ee;padding:14px 18px;border-radius:5px}summary{cursor:pointer;font-weight:600}dl{display:grid;grid-template-columns:150px minmax(0,1fr);font-size:14px;gap:8px 20px;margin:18px 0 8px}dt{color:#586981}dd{margin:0;min-width:0}ul.limits{padding-left:20px;font-size:14px;max-width:80ch}ul.limits li{margin:6px 0}footer{border-top:1px solid #dce3ee;margin-top:30px;padding-top:18px;font-size:13px;color:#586981}
-.pair{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:26px 0;border:1px solid #dce3ee;border-radius:5px}.pair article{padding:22px}.pair article+article{border-left:1px solid #dce3ee}.pair .verdict{margin-top:6px}.pair h2{margin:0 0 8px}.pair p{margin:10px 0}.comparison td:first-child{min-width:240px}
-@media(max-width:760px){main{margin:0;padding:22px 18px;border-top-width:4px}header{display:block}nav{margin-top:14px;gap:14px}.stages{grid-template-columns:repeat(3,minmax(0,1fr))}.stages li{min-height:84px}th,td{padding:10px}dl{grid-template-columns:1fr;gap:3px}dd{margin-bottom:9px}.pair{grid-template-columns:1fr}.pair article+article{border-left:0;border-top:1px solid #dce3ee}.facts{gap:8px 20px}}
-@media print{body{background:white}main{margin:0;max-width:none;padding:12px}nav,.check-region>input,.check-region>label{display:none}.table-shell{overflow:visible}tr[data-result]{display:table-row!important}details{break-inside:avoid}a{color:inherit}h2{break-after:avoid}}
+:root{--paper:#fbfcfe;--field:#e9f0f5;--ink:#193647;--link:#246b78;--fail:#a03446;--pass:#246148;--line:#cddce5;--muted:#506779}
+*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:var(--field);color:var(--ink);font:16px/1.6 "DejaVu Sans",Verdana,sans-serif}main{max-width:1200px;margin:28px auto;background:var(--paper);padding:30px 40px 26px;border-radius:12px;border:1px solid var(--line)}
+a{color:var(--link);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}a:focus-visible,summary:focus-visible{outline:3px solid var(--link);outline-offset:4px}.skip-link{position:absolute;left:18px;top:-80px;padding:12px;background:white;z-index:5}.skip-link:focus{top:8px}
+header{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:18px}header p{margin:0}header strong{font-size:17px}nav{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:13px}nav a{display:inline-flex;align-items:center;min-height:44px;padding:6px 9px;border:1px solid var(--line);border-radius:5px;text-decoration:none;background:white}nav a:hover{border-color:var(--link);background:var(--field)}
+h1{font-size:clamp(25px,3.3vw,38px);line-height:1.23;letter-spacing:-.035em;font-weight:700;max-width:27ch;margin:14px 0 12px}h2{font-size:21px;line-height:1.3;letter-spacing:-.02em;margin:28px 0 14px}h3{font-size:16px;margin:0 0 6px}p{max-width:76ch}small,.muted{font-size:13px;color:var(--muted)}.muted{margin-top:6px}.hero{padding:4px 0 8px}.hero>p{margin:10px 0}
+code,pre{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:12px;overflow-wrap:anywhere}pre{white-space:pre-wrap;background:var(--field);padding:16px;border-radius:6px;max-width:100%}.verdict{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:6px 11px;border:1px solid currentColor;border-radius:5px;margin-top:24px}.verdict:before{content:'';width:7px;height:7px;background:currentColor;border-radius:50%}.pass{color:var(--pass)}.fail{color:var(--fail)}.unknown{color:var(--ink)}.facts{display:flex;flex-wrap:wrap;gap:8px 24px;padding:14px 0 18px;border-bottom:1px solid var(--line)}.facts span{font-size:13px}.facts strong{font-weight:700;margin-right:4px}
+.check-region{position:relative;border:0;padding:0;margin:0;min-width:0}.filter-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:24px 0 20px;padding:0;list-style:none;gap:0}.stages li{position:relative;min-width:0;border-top:3px solid var(--line);padding-top:8px}.stages label{display:block;position:relative;cursor:pointer;padding:9px 8px 10px;border-radius:6px;min-height:78px}.stages label:hover{background:var(--field)}.stage-number{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;background:var(--paper);border:1px solid currentColor;border-radius:50%;font-size:11px;font-weight:700;margin-bottom:7px}.stages b{display:block;color:var(--ink);font-size:13px;line-height:1.4}.stages small{display:block;font-size:11px;margin-top:3px}.stages .pass{border-color:var(--pass)}.stages .fail{border-color:var(--fail)}
+.finding{overflow-wrap:anywhere;border-left:4px solid var(--fail);background:#f9eff2;padding:14px 18px;margin:18px 0 22px;border-radius:0 6px 6px 0}.finding p{margin:3px 0;font-size:14px}.finding.neutral{border-color:var(--link);background:var(--field)}.finding ul{padding-left:18px;font-size:14px}
+.evidence-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:24px 0 8px}.evidence-toolbar h2{margin:0}.filters{display:flex;gap:4px;border:1px solid var(--line);border-radius:7px;padding:3px;background:var(--field)}.filters label{font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border-radius:4px;border:1px solid transparent}.filters label:hover{background:white}.view-note{font-size:13px;color:var(--muted);margin:6px 0 12px;display:none}
+#all-checks:checked~.evidence-toolbar label[for="all-checks"],#fail-only:checked~.evidence-toolbar label[for="fail-only"]{background:var(--paper);border-color:var(--line);color:var(--ink);font-weight:700}
+#all-checks:focus-visible~.evidence-toolbar label[for="all-checks"],#fail-only:focus-visible~.evidence-toolbar label[for="fail-only"]{outline:3px solid var(--link);outline-offset:3px}
+#all-checks:checked~.note-all,#fail-only:checked~.note-fail{display:block}#fail-only:checked~.table-shell tr[data-result="PASS"]{display:none}
+.table-shell{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden}table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left;font-size:14px}th{font-weight:600;background:var(--field);padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px}td{padding:15px 16px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}tr:last-child td{border-bottom:0}.evidence-table th:first-child{width:65%}.evidence-table th:nth-child(2){width:19%}.evidence-table th:nth-child(3){width:16%}.operation-name{font-weight:600;margin:0;line-height:1.45}.operation-meta{display:block;font-size:12px;color:var(--muted);margin-top:6px}.check-id{display:block;font-size:10px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}.classification{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:5px}.result{font-weight:700;font-size:12px}.result:before{content:'●';font-size:8px;margin-right:5px}.duration{font-size:11px;color:var(--muted)}td small{display:block}.empty-note{font-size:14px;padding:14px 16px;background:var(--field);border-radius:6px;margin-top:12px;display:none}#fail-only:checked~.empty-fail,#all-checks:checked~.empty-all{display:block}
+details{margin:16px 0;border:1px solid var(--line);border-radius:7px;background:white}summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;min-height:48px}details[open] summary{border-bottom:1px solid var(--line)}details dl,details pre,details h3{margin:16px}dl{display:grid;grid-template-columns:145px minmax(0,1fr);font-size:13px;gap:8px 18px}dt{color:var(--muted)}dd{margin:0;min-width:0}ul.limits{padding-left:20px;font-size:13px;max-width:80ch}ul.limits li{margin:7px 0}footer{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;font-size:12px;color:var(--muted)}.scope-heading{margin-top:30px}
+.pair{display:grid;grid-template-columns:1fr 1fr;margin:22px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}.pair article{padding:22px}.pair article+article{border-left:1px solid var(--line)}.pair .verdict{margin:0 0 12px}.pair h2{margin:0 0 12px;font-size:19px}.pair p{margin:8px 0;font-size:14px}.pair article>a{display:inline-flex;align-items:center;min-height:44px;margin-top:8px}.comparison th:first-child{width:58%}.comparison th:not(:first-child){width:21%}.comparison td small{color:var(--muted);font-size:11px;margin-top:5px}.comparison .result{font-size:12px}.comparison td{padding:13px 14px}.source-note{font-size:13px;color:var(--muted)}
+@media(max-width:760px){main{margin:0;padding:20px 18px;border:0;border-radius:0}header{align-items:flex-start;display:block}nav{margin-top:12px;gap:6px;font-size:12px}nav a{padding:6px 8px}h1{font-size:27px;max-width:28ch}.facts{gap:8px 16px}.stages{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px;margin-top:20px}.stages label{padding:7px 6px;min-height:80px}.stages b{font-size:12px}.stages small{font-size:10px}.stage-number{margin-bottom:5px}.evidence-toolbar{align-items:stretch;gap:12px}.evidence-toolbar h2{font-size:19px}.filters{width:100%}.filters label{flex:1;font-size:12px;padding:8px 9px}th,td{padding:12px 9px}.evidence-table th:first-child{width:59%}.evidence-table th:nth-child(2){width:21%}.evidence-table th:nth-child(3){width:20%}.operation-name{font-size:13px}.operation-meta{font-size:11px}.result{font-size:10px}.classification{font-size:10px}.check-id{font-size:9px}td code{font-size:11px}.finding{padding:13px 14px}.finding p{font-size:13px}dl{grid-template-columns:1fr;gap:3px}dd{margin-bottom:10px}.pair{grid-template-columns:1fr}.pair article+article{border-left:0;border-top:1px solid var(--line)}.comparison th:first-child{width:52%}.comparison th:not(:first-child){width:24%}.comparison td{padding:10px 8px;font-size:12px}.comparison .result{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+@media print{body{background:white}main{margin:0;max-width:none;border:0;padding:12px}nav,.filters,.filter-input,.view-note,.skip-link{display:none!important}tr[data-result]{display:table-row!important}details{break-inside:avoid}a{color:inherit}h2{break-after:avoid}.stages label{cursor:default}}
+#stage-baseline:checked~.table-shell tr[data-stage]:not([data-stage="baseline"]){display:none}
+#stage-baseline:checked~.stages label[for="stage-baseline"]{background:var(--field);box-shadow:inset 0 0 0 1px var(--link)}
+#stage-baseline:focus-visible~.stages label[for="stage-baseline"]{outline:3px solid var(--link);outline-offset:3px}
+#stage-baseline:checked~.note-baseline,#stage-baseline:checked~.empty-baseline{display:block}
+#stage-migration:checked~.table-shell tr[data-stage]:not([data-stage="migration"]){display:none}
+#stage-migration:checked~.stages label[for="stage-migration"]{background:var(--field);box-shadow:inset 0 0 0 1px var(--link)}
+#stage-migration:focus-visible~.stages label[for="stage-migration"]{outline:3px solid var(--link);outline-offset:3px}
+#stage-migration:checked~.note-migration,#stage-migration:checked~.empty-migration{display:block}
+#stage-target:checked~.table-shell tr[data-stage]:not([data-stage="target"]){display:none}
+#stage-target:checked~.stages label[for="stage-target"]{background:var(--field);box-shadow:inset 0 0 0 1px var(--link)}
+#stage-target:focus-visible~.stages label[for="stage-target"]{outline:3px solid var(--link);outline-offset:3px}
+#stage-target:checked~.note-target,#stage-target:checked~.empty-target{display:block}
+#stage-rollout:checked~.table-shell tr[data-stage]:not([data-stage="rollout"]){display:none}
+#stage-rollout:checked~.stages label[for="stage-rollout"]{background:var(--field);box-shadow:inset 0 0 0 1px var(--link)}
+#stage-rollout:focus-visible~.stages label[for="stage-rollout"]{outline:3px solid var(--link);outline-offset:3px}
+#stage-rollout:checked~.note-rollout,#stage-rollout:checked~.empty-rollout{display:block}
+#stage-mixed:checked~.table-shell tr[data-stage]:not([data-stage="mixed"]){display:none}
+#stage-mixed:checked~.stages label[for="stage-mixed"]{background:var(--field);box-shadow:inset 0 0 0 1px var(--link)}
+#stage-mixed:focus-visible~.stages label[for="stage-mixed"]{outline:3px solid var(--link);outline-offset:3px}
+#stage-mixed:checked~.note-mixed,#stage-mixed:checked~.empty-mixed{display:block}
+#stage-app_rollback:checked~.table-shell tr[data-stage]:not([data-stage="app_rollback"]){display:none}
+#stage-app_rollback:checked~.stages label[for="stage-app_rollback"]{background:var(--field);box-shadow:inset 0 0 0 1px var(--link)}
+#stage-app_rollback:focus-visible~.stages label[for="stage-app_rollback"]{outline:3px solid var(--link);outline-offset:3px}
+#stage-app_rollback:checked~.note-app_rollback,#stage-app_rollback:checked~.empty-app_rollback{display:block}
 '''
 STAGES = [('baseline', 'Baseline'), ('migration', 'Migration'), ('target', 'New app'),
           ('rollout', 'Old app'), ('mixed', 'Mixed versions'), ('app_rollback', 'App rollback')]
@@ -50,7 +75,7 @@ def tone(status):
 def shell(title, body):
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{esc(title)}</title><style>{STYLE}</style></head><body><main>{body}'
+            f'<title>{esc(title)}</title><style>{STYLE}</style></head><body><a class="skip-link" href="#main-content">Skip to report</a><main id="main-content">{body}'
             '</main></body></html>')
 
 
@@ -82,20 +107,28 @@ def html_report(report):
     failed = [c for c in checks if c.get('status') != 'PASS']
     passed = len(checks) - len(failed)
     scenario = report['scenario']
-    navigation = (f'<a href="{quote(str(scenario), safe="")}.json">JSON evidence</a>'
-                  f'<a href="{quote(str(scenario), safe="")}.md">Markdown</a>'
+    navigation = (f'<a href="{quote(str(scenario), safe="")}.json" download>JSON evidence</a>'
+                  f'<a href="{quote(str(scenario), safe="")}.md" download>Markdown</a>'
                   + ('<a href="comparison.html">Compare candidates</a>' if scenario in {'breaking', 'expand'} else ''))
     body = '<header><div><p><strong>Migration acceptance</strong></p><p class="muted">' + esc(report.get('workload', 'customer-reference')) + '<br>Commit <code title="' + esc(report['commit']) + '">' + esc(report['commit'][:12]) + '</code></p></div><nav aria-label="Report files">' + navigation + '</nav></header>'
-    body += badge(report['verdict']) + '<h1>' + esc(introduction(report)) + '</h1>'
-    body += '<p class="muted">Recorded evidence for the ' + esc(scenario) + ' candidate. The result applies to the declared probes and fixture.</p>'
+    body += '<div class="hero">' + badge(report['verdict']) + '<h1>' + esc(introduction(report)) + '</h1>'
+    body += '<p class="muted">Recorded evidence for <strong>' + esc(scenario) + '</strong>. This result covers the declared probes and fixture.</p></div>'
     body += f'<div class="facts"><span><strong>{passed}/{len(checks)}</strong> checks passed</span><span><strong>{len(failed)}</strong> failed</span><span>Execution: <strong>{"complete" if report.get("completed") else "incomplete"}</strong></span><span>Cleanup: <strong>{"complete" if report.get("cleanup_ok") else "unconfirmed"}</strong></span></div>'
-    body += '<ol class="stages" aria-label="Acceptance sequence">'
-    for stage, label in STAGES:
+    # One native radio group filters by result OR execution phase. No script is
+    # needed to expose passing setup/rollback probes from a failed-only view.
+    body += '<fieldset class="check-region"><legend class="sr-only">Filter operation evidence by result or execution phase</legend>'
+    selected = 'fail-only' if failed else 'all-checks'
+    for key in ('all-checks', 'fail-only', *('stage-' + stage for stage, _ in STAGES)):
+        body += f'<input class="filter-input" type="radio" name="check-filter" id="{key}" aria-controls="operation-table"' + (' checked' if key == selected else '') + '>'
+    body += '<ol class="stages" aria-label="Acceptance sequence; select a phase to inspect its checks">'
+    groups = {}
+    for number, (stage, label) in enumerate(STAGES, 1):
         group = [c for c in checks if c.get('stage') == stage]
+        groups[stage] = group
         bad = sum(c.get('status') != 'PASS' for c in group)
         status = 'FAIL' if bad else 'PASS' if group else 'NOT RUN'
-        description = f'{bad} failed / {len(group)} checks' if bad else f'{len(group)} passed' if group else 'No checks recorded'
-        body += f'<li class="{tone(status)}"><b>{label}</b><small>{esc(description)}</small></li>'
+        description = f'{bad} failed / {len(group)} checks' if bad else f'{len(group)} passed' if group else 'Not run'
+        body += f'<li class="{tone(status)}"><label for="stage-{stage}"><span class="stage-number" aria-hidden="true">{number}</span><b>{label}</b><small>{esc(description)}</small><span class="sr-only">Inspect {label} checks</span></label></li>'
     body += '</ol>'
     if report.get('verdict') == 'INCONCLUSIVE' or not report.get('completed') or not report.get('cleanup_ok'):
         for issue in troubleshooting(report):
@@ -105,23 +138,32 @@ def html_report(report):
         first = failed[0]
         body += '<aside class="finding"><h3>First recorded failure</h3><p><strong>' + esc(first['operation']) + '</strong> / ' + esc(first['version']) + '</p>'
         if first.get('sqlstate') == '42703':
-            body += '<p>SQLSTATE <code>42703</code>: an application requested a column that is absent from this schema.</p><p>Review the failing operation and preserve the fields needed by old versions during the rollout window.</p>'
+            body += '<p>SQLSTATE <code>42703</code>: an application requested a column absent from this schema. Review the old/new field mappings and preserve required fields during overlap.</p>'
         else:
-            body += '<p>Inspect the failing operation and its error classification before changing the candidate.</p>'
+            body += '<p>Inspect the failed operation and its classification before changing the candidate.</p>'
         body += '</aside>'
-    body += '<section class="check-region" aria-labelledby="checks-heading"><h2 id="checks-heading">Operation evidence</h2>'
-    body += f'<input type="radio" name="check-filter" id="all-checks" checked><label for="all-checks">All checks ({len(checks)})</label><input type="radio" name="check-filter" id="fail-only"><label for="fail-only">Failures ({len(failed)})</label>'
+    body += '<div class="evidence-toolbar"><h2 id="checks-heading">Operation evidence</h2><div class="filters">'
+    body += f'<label for="all-checks">All checks ({len(checks)})</label><label for="fail-only">Failures ({len(failed)})</label></div></div>'
+    body += '<p class="view-note note-all">Showing every recorded check, including setup and restart. Select a phase above to narrow the evidence.</p>'
+    body += '<p class="view-note note-fail">Showing failed checks. Select a phase above to inspect its passing and failing operations.</p>'
+    for stage, label in STAGES:
+        body += f'<p class="view-note note-{stage}">Showing {esc(label)}: {len(groups[stage])} recorded checks. Select All checks to restore the complete run.</p>'
+        if not groups[stage]:
+            body += f'<p class="empty-note empty-{stage}">No {esc(label)} checks were recorded. This phase is not proven by this run.</p>'
     if not failed:
-        body += '<p class="empty-note">No failed checks were recorded. Check execution and cleanup status before interpreting this result.</p>'
-    body += '<div class="table-shell"><table><thead><tr><th scope="col">Stage</th><th scope="col">Application</th><th scope="col">Operation</th><th scope="col">Result</th><th scope="col">SQLSTATE</th></tr></thead><tbody>'
+        body += '<p class="empty-note empty-fail">No failed checks were recorded. Check execution and cleanup status before interpreting this result.</p>'
+    if not checks:
+        body += '<p class="empty-note empty-all">No operation checks were recorded. Read the setup and cleanup evidence below; this is not a successful compatibility run.</p>'
+    body += '<div class="table-shell"><table class="evidence-table" id="operation-table"><caption class="sr-only">Recorded operation evidence. The selected result or phase filter changes visible rows.</caption><thead><tr><th scope="col">Operation</th><th scope="col">Result</th><th scope="col">SQL<wbr>STATE</th></tr></thead><tbody>'
     labels = dict(STAGES)
     for c in checks:
         status = c.get('status', 'UNKNOWN')
-        body += f'<tr data-result="{esc(status)}"><td>{esc(labels.get(c["stage"], c["stage"]))}</td><td>{esc(c["version"])}</td><td><p>{esc(c["operation"])}</p><small class="check-id">{esc(c["id"])}</small>'
+        body += f'<tr data-result="{esc(status)}" data-stage="{esc(c["stage"])}" id="check-{quote(c["id"], safe="")}"><td><p class="operation-name">{esc(c["operation"])}</p><span class="operation-meta">{esc(labels.get(c["stage"], c["stage"]))} / {esc(c["version"])}</span><small class="check-id">{esc(c["id"])}</small></td><td>' + result(status)
         if c.get('failure_kind'):
-            body += '<small>Classification: ' + esc(c['failure_kind']) + '</small>'
-        body += '</td><td>' + result(status) + '</td><td><code>' + esc(c.get('sqlstate') or '—') + '</code></td></tr>'
-    body += '</tbody></table></div></section>'
+            classification = {'compatibility': 'Compatibility', 'infrastructure_or_unknown': 'Infrastructure or unknown'}.get(c['failure_kind'], c['failure_kind'])
+            body += '<small class="classification">' + esc(classification) + '</small>'
+        body += '</td><td><code>' + esc(c.get('sqlstate') or '—') + '</code></td></tr>'
+    body += '</tbody></table></div></fieldset>'
     body += '<details><summary>Run identity and source</summary><dl>'
     for label, value in [('Candidate', scenario), ('Commit', report['commit']), ('Run ID', report['run_id']), ('Created', report.get('created_at', 'unspecified')), ('Transport', report.get('transport', 'unspecified')), ('Fixture SHA-256', report['fixture_sha256'])]:
         body += '<dt>' + esc(label) + '</dt><dd><code>' + esc(value) + '</code></dd>'
@@ -136,7 +178,7 @@ def html_report(report):
     if report.get('error_context') or report.get('cleanup_evidence'):
         evidence = {key: report[key] for key in ('error_context', 'cleanup_evidence') if key in report}
         body += '<details><summary>Failure context and cleanup evidence</summary><pre>' + esc(json.dumps(evidence, indent=2)) + '</pre></details>'
-    body += '<h2>What this run covers</h2><ul class="limits">' + ''.join('<li>' + esc(v) + '</li>' for v in report.get('limitations', [])) + '</ul>'
+    body += '<h2 class="scope-heading">What this run covers</h2><ul class="limits">' + ''.join('<li>' + esc(v) + '</li>' for v in report.get('limitations', [])) + '</ul>'
     body += '<footer>A recorded GO_WITHIN_SCOPE is evidence for these probes. Merge and deployment remain human decisions.</footer>'
     return shell('Migration acceptance: ' + report['verdict'], body)
 

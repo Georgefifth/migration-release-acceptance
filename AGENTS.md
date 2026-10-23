@@ -76,3 +76,12 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   and expected values out of evidence. verify_rollback must cover normal, stale,
   corrupt, valid empty and failed-paired-read cases over real HTTP/PostgreSQL and
   against the installed wheel; independently verify each owned schema is removed.
+
+- Reports must preserve native result/phase filters without JavaScript. Failed
+  runs start on Failures; phase selection includes passing and failed rows.
+  Keep explicit empty/incomplete states, source/cleanup evidence and 44px primary
+  controls. Test keyboard and mobile behavior on the actual deployed static site.
+- GitLab remains the canonical execution/Duo project. GitHub Pages is a static
+  source/report demonstration, not a hosted database or SQL executor. Publish
+  only allowlisted synthetic evidence and source; exclude secrets, environments,
+  raw traces and private data. Verify public build identity and local links.

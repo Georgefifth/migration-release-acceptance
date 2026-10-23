@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from acceptance.report import write_reports
-from acceptance.report_ui import comparison_gap, comparison_report, introduction, link
+from acceptance.report_ui import comparison_gap, comparison_report, introduction, link, html_report
 from test_gate import complete
 
 
@@ -18,6 +18,36 @@ def run_report(scenario='expand'):
 
 
 class ReportViewTests(unittest.TestCase):
+    def test_failed_reports_start_with_failed_rows_without_javascript(self):
+        report = run_report('breaking')
+        report['verdict'] = 'BLOCK'
+        report['checks'][7].update(status='FAIL', failure_kind='compatibility')
+        page = html_report(report)
+        self.assertIn('id="fail-only" aria-controls="operation-table" checked', page)
+        self.assertNotIn('id="all-checks" aria-controls="operation-table" checked', page)
+        self.assertNotIn('<script', page)
+        self.assertIn('Skip to report', page)
+        self.assertIn('<caption', page)
+
+    def test_passing_and_empty_runs_default_to_all_and_explain_missing_evidence(self):
+        report = run_report()
+        self.assertIn('id="all-checks" aria-controls="operation-table" checked', html_report(report))
+        report.update(checks=[], completed=False, verdict='INCONCLUSIVE')
+        page = html_report(report)
+        self.assertIn('No operation checks were recorded', page)
+        self.assertIn('not a successful compatibility run', page)
+        self.assertIn('No App rollback checks were recorded', page)
+
+    def test_phase_filters_have_native_labels_and_do_not_change_saved_evidence(self):
+        from acceptance.report_ui import STAGES
+        report = run_report()
+        before = copy.deepcopy(report)
+        page = html_report(report)
+        for stage, _ in STAGES:
+            self.assertIn('id="stage-' + stage + '"', page)
+            self.assertIn('for="stage-' + stage + '"', page)
+        self.assertEqual(before, report)
+
     def test_named_project_candidate_links_only_its_own_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             write_reports(run_report('item-title-storage'), directory)

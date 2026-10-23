@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "transport": "HTTP",
+  "workload": "fastapi-upstream-items",
+  "provenance": {
+    "repository": "fastapi/full-stack-fastapi-template",
+    "commit": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+    "original_model_blob": "181acf2bf16b4285becb5a5626cf3aa56210211e",
+    "patched_model_sha256": "7f9f207c3cb6c71edfbb25e43b8006e96acf994e09a044e39a519280f6ea7ae7",
+    "lock_sha256": "4a46cbffbb76f1fcfdb77e50d2106d183fda30a6b178da5f2e2dd5079801dda9",
+    "change": "v2 Item.title maps to physical column display_title; API title stays unchanged"
+  },
+  "application_factory": "integrations.fastapi_case:integration.<locals>.UpstreamApplication",
+  "applications": [
+    {
+      "version": "v1",
+      "pid": 131,
+      "transport": "HTTP"
+    },
+    {
+      "version": "v2",
+      "pid": 184,
+      "transport": "HTTP"
+    },
+    {
+      "version": "v1",
+      "pid": 237,
+      "transport": "HTTP",
+      "phase": "rollback"
+    }
+  ],
+  "run_id": "ff2362fa-c0da-4bf8-b949-e3e995104eef",
+  "scenario": "rename-title",
+  "commit": "2ec32c7eb316c4f1cedf6e92a27b3e240de55c60",
+  "pipeline_url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43208246/showcase/-/pipelines/2980661072",
+  "created_at": "2026-10-23T10:36:01.553307+00:00",
+  "fixture_sha256": "3cf598c14f3b744723e71c3e2896a24b370373192d89db147df166b0162fb55c",
+  "checks": [
+    {
+      "id": "applications_started",
+      "stage": "baseline",
+      "version": "v1",
+      "operation": "Start independent old HTTP application",
+      "status": "PASS",
+      "duration_ms": 1934.43
+    },
+    {
+      "id": "baseline_read",
+      "stage": "baseline",
+      "version": "v1",
+      "operation": "Read existing project item",
+      "status": "PASS",
+      "duration_ms": 24.03
+    },
+    {
+      "id": "baseline_write",
+      "stage": "baseline",
+      "version": "v1",
+      "operation": "Create and read project item",
+      "status": "PASS",
+      "duration_ms": 13.81
+    },
+    {
+      "id": "migration",
+      "stage": "migration",
+      "version": "-",
+      "operation": "Apply candidate SQL",
+      "status": "PASS",
+      "duration_ms": 1.55
+    },
+    {
+      "id": "new_application_started",
+      "stage": "target",
+      "version": "v2",
+      "operation": "Start independent new HTTP application",
+      "status": "PASS",
+      "duration_ms": 1007.42
+    },
+    {
+      "id": "new_read",
+      "stage": "target",
+      "version": "v2",
+      "operation": "Read migrated project item",
+      "status": "PASS",
+      "duration_ms": 23.91
+    },
+    {
+      "id": "new_write",
+      "stage": "target",
+      "version": "v2",
+      "operation": "Create and read project item",
+      "status": "PASS",
+      "duration_ms": 14.92
+    },
+    {
+      "id": "old_read",
+      "stage": "rollout",
+      "version": "v1",
+      "operation": "Read migrated project item",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 5.42
+    },
+    {
+      "id": "old_write",
+      "stage": "rollout",
+      "version": "v1",
+      "operation": "Create and read project item",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 4.91
+    },
+    {
+      "id": "old_to_new",
+      "stage": "mixed",
+      "version": "v1 \u2192 v2",
+      "operation": "Old creates; new reads",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 4.94
+    },
+    {
+      "id": "new_to_old",
+      "stage": "mixed",
+      "version": "v2 \u2192 v1",
+      "operation": "New creates; old reads",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 10.5
+    },
+    {
+      "id": "new_update_to_old",
+      "stage": "mixed",
+      "version": "v2 \u2192 v1",
+      "operation": "New updates; old reads",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 76.76
+    },
+    {
+      "id": "old_update_to_new",
+      "stage": "mixed",
+      "version": "v1 \u2192 v2",
+      "operation": "Old updates; new reads",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 4.53
+    },
+    {
+      "id": "rollback_restart",
+      "stage": "app_rollback",
+      "version": "v1",
+      "operation": "Stop both apps; restart v1; verify new process identity",
+      "status": "PASS",
+      "duration_ms": 1379.7
+    },
+    {
+      "id": "rollback_read",
+      "stage": "app_rollback",
+      "version": "v1",
+      "operation": "Read latest acknowledged value after rollout",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 24.11
+    },
+    {
+      "id": "rollback_new_data",
+      "stage": "app_rollback",
+      "version": "v1",
+      "operation": "Read data committed by v2",
+      "status": "FAIL",
+      "sqlstate": "42703",
+      "failure_kind": "compatibility",
+      "duration_ms": 4.6
+    }
+  ],
+  "completed": true,
+  "cleanup_ok": true,
+  "limitations": [
+    "Synthetic project item records only; no production data or traffic.",
+    "Two independent instances of the pinned upstream FastAPI backend with real login and item CRUD routes; synthetic data.",
+    "Sequential interleavings; no concurrent transactions or load test.",
+    "No lock-duration, large backfill, replication, or production deployment verification.",
+    "Rollback means returning to v1 code on the migrated schema, not undoing SQL.",
+    "GO applies only to this fixture and these declared probes."
+  ],
+  "cleanup_evidence": {
+    "schema": "acceptance_eeb61ee97c4d443983af2702ca0f7bda",
+    "schema_state": "removed",
+    "applications_stopped": true,
+    "connection_closed": true
+  },
+  "postgres_version": 160015,
+  "verdict": "BLOCK"
+}

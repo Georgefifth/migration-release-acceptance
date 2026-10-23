@@ -8,3 +8,5 @@ reports/
 build/
 dist/
 *.egg-info/
+
+site/

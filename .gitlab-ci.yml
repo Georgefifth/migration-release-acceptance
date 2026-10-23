@@ -28,6 +28,7 @@ unit:
   stage: test
   script:
     - python -m unittest discover -s tests -v
+    - python tools/build_site.py --output site
 
 .postgres:
   services:

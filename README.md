@@ -139,3 +139,17 @@ Rollback value verification (v0.1.3) checks the latest acknowledged update after
 restarting v1. Stale or incorrect nonempty values fail, while a legitimate empty
 string passes. Earlier reports used a weaker nonempty check and must be rerun to
 establish this stronger guarantee. See [troubleshooting](docs/troubleshooting.md).
+
+## Inspect the public report demo
+
+[Static report demo](https://georgefifth.github.io/migration-release-acceptance/)
+shows saved synthetic FastAPI evidence. GitHub Pages cannot execute SQL or run
+application/database tests; use the CLI and GitLab CI for execution. The
+[GitHub mirror](https://github.com/Georgefifth/migration-release-acceptance)
+contains the source and static build tool. See [deployment](docs/deployment.md)
+and [UX research/acceptance](docs/ux-improvement-plan.md).
+
+Report UI v0.1.4 opens failed runs on failed checks. Native phase controls show
+all recorded operations in that phase, including passing setup/restart; All checks
+restores the complete run. Offline reports still use no JavaScript or external
+assets. Display changes never rerun acceptance or replace the saved verdict.

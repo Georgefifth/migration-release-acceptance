@@ -70,12 +70,12 @@ async function main() {
       assert.match(await page.locator('.facts').innerText(), /8\/16/);
     }, 12);
     await show('03-failures', 'Select Failures to locate old and mixed-version requests.\nSQLSTATE 42703 means the expected column is absent.', async () => {
-      await page.getByLabel('Failures (8)', {exact: true}).check();
+      await page.locator('label[for="fail-only"]').click();
       await page.locator('#checks-heading').scrollIntoViewIfNeeded();
       assert.equal(await page.locator('tr[data-result]:visible').count(), 8);
     }, 12);
     await show('04-rollback', 'Restarting the old app succeeds, but its reads still fail.\nReturning to old code does not undo the schema migration.', async () => {
-      await page.getByLabel('All checks (16)', {exact: true}).check();
+      await page.locator('label[for="all-checks"]').click();
       await page.locator('tr').filter({has: page.locator('small.check-id', {hasText: /^rollback_restart$/})}).scrollIntoViewIfNeeded();
     }, 12);
     await show('05-compatible', 'The compatible candidate passes all 16 declared checks.\nRollback reads now verify the latest acknowledged value, not merely a nonempty result.', async () => {
