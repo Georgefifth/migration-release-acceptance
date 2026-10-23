@@ -9,6 +9,16 @@ from test_report_ui import run_report
 
 
 class OfflineReportTests(unittest.TestCase):
+    def test_single_named_candidate_prints_its_actual_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'run.json').write_text(json.dumps(run_report('item-title-storage')))
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(main([str(root / 'run.json'), '--output', str(root / 'out')]), 0)
+            self.assertIn('item-title-storage.html', output.getvalue())
+            self.assertNotIn('comparison.html', output.getvalue())
+
     def test_blocked_and_passing_evidence_roundtrip_without_database(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -96,7 +96,11 @@ def main(argv=None):
     except OSError:
         parser.exit(2, 'Cannot write report output.\n')
     print('Created offline reports. Rendering does not approve a release.')
-    print(args.output / 'comparison.html')
+    if {'breaking', 'expand'}.issubset(scenarios):
+        print(args.output / 'comparison.html')
+    else:
+        for scenario in scenarios:
+            print(args.output / (scenario + '.html'))
     return 0
 
 
