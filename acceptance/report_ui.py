@@ -83,7 +83,7 @@ def html_report(report):
     scenario = report['scenario']
     navigation = (f'<a href="{quote(str(scenario), safe="")}.json">JSON evidence</a>'
                   f'<a href="{quote(str(scenario), safe="")}.md">Markdown</a>'
-                  '<a href="comparison.html">Compare candidates</a>')
+                  + ('<a href="comparison.html">Compare candidates</a>' if scenario in {'breaking', 'expand'} else ''))
     body = '<header><div><p><strong>Migration acceptance</strong></p><p class="muted">' + esc(report.get('workload', 'customer-reference')) + '<br>Commit <code title="' + esc(report['commit']) + '">' + esc(report['commit'][:12]) + '</code></p></div><nav aria-label="Report files">' + navigation + '</nav></header>'
     body += badge(report['verdict']) + '<h1>' + esc(introduction(report)) + '</h1>'
     body += '<p class="muted">Recorded evidence for the ' + esc(scenario) + ' candidate. The result applies to the declared probes and fixture.</p>'

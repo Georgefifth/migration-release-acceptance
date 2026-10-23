@@ -73,8 +73,11 @@ upstream-fastapi:
     - .upstream/source/.venv/bin/python -m acceptance.wait_db
   script:
     # Fixed upstream revision + reviewed candidate change; integration self-test.
+    - .upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --check
     - .upstream/source/.venv/bin/python -m integrations.fastapi_case --scenario breaking
     - .upstream/source/.venv/bin/python -m integrations.fastapi_case --scenario expand
+    # Verify the same real API through the public project entry point.
+    - .upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --candidate item-title-storage --output reports/upstream-project
 
 release-acceptance:
   extends: .postgres

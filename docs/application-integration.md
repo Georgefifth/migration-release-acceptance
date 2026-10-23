@@ -1,63 +1,146 @@
-# Connect a reviewed application adapter
+# Connect a reviewed application
 
-This is a small project-local extension point, not automatic application discovery.
-The runnable example still uses our synthetic customer app. It proves the wiring;
-it is not evidence of a real team's installation, adoption, or time saved.
+The project entry point removes the need to write a report/exit-code wrapper.
+It does not discover your application automatically. You still provide reviewed
+startup, HTTP-operation mapping, synthetic baseline data and candidate SQL.
+There is no independent customer installation or measured setup saving yet.
 
-## Try the integration example
-With the same disposable database settings as the README:
+## Check the runnable reference integration
+
+From the repository root, no database or psycopg installation is needed for:
 
 ```sh
-python -m examples.project_acceptance --scenario expand
-python -m examples.project_acceptance --scenario breaking
-python -m examples.verify_adapter
+python3 -m acceptance.project --integration examples.project_acceptance:integration --check
 ```
 
-Expand must exit 0; breaking must exit 1. Reports go to
-`reports/project-adapter/`. The verifier also simulates a startup failure after a
-real HTTP process has started: it requires INCONCLUSIVE and successful cleanup.
-This is a harness self-test, not a release gate. CI runs it as `adapter-contract`.
+This checks the returned configuration, value types, baseline and declared SQL
+files without constructing adapters, launching apps or accessing a database.
+It does not execute SQL, verify HTTP endpoints or establish compatibility.
+The named Python module is imported and its configuration function is called:
+only use code you have reviewed. These imports are not sandboxed.
 
-## Adapter boundary
-Call `run(scenario, dsn, application_factory=YourApplication)` from reviewed code.
-The factory receives `(version, schema, dsn)`; versions are `v1` and `v2`.
-Construction must not launch processes. The harness registers adapters for cleanup
-before calling `start`, including if startup fails partway through.
+To run, install requirements.txt and supply your disposable test database through
+DATABASE_URL and ACCEPTANCE_DISPOSABLE_DB=yes, as in the manual README setup:
 
-| Member | Contract |
+```sh
+python3 -m acceptance.project --integration examples.project_acceptance:integration --candidate expand --output reports/project
+python3 -m acceptance.project --integration examples.project_acceptance:integration --candidate breaking --output reports/project
+```
+
+The second command intentionally exits 1. Reports contain the real verdict;
+exit 0 = GO_WITHIN_SCOPE, 1 = BLOCK, 2 = INCONCLUSIVE/setup/configuration failure.
+Legacy examples.project_acceptance commands remain available. --scenario is an
+alias for --candidate. Neither the project command nor manual setup manages the
+lifetime of a database you provide; the first-trial command owns its own database.
+
+## Declare your project's candidate
+
+Keep a reviewed module such as project_acceptance.py importable from the working
+directory. The following is a configuration sketch; YourApplication must be
+implemented for your application, not copied unchanged from the synthetic app:
+
+```python
+from pathlib import Path
+from acceptance.integration import Integration
+from acceptance.workload import Workload
+from your_project.acceptance_adapter import YourApplication
+
+ROOT = Path(__file__).resolve().parent
+
+
+def integration():
+    return Integration(
+        application_factory=YourApplication,
+        workload=Workload(
+            name="your-project-items",
+            entity="item",
+            fixtures=ROOT / "acceptance_fixtures",
+            initial="Existing synthetic item",
+            created="Created synthetic item",
+            old_write="Old created item",
+            new_write="New created item",
+            old_update="Old updated item",
+            new_update="New updated item",
+            application_scope="Reviewed old/new project apps over loopback HTTP; synthetic items only.",
+            provenance={"application_revision": "record-the-reviewed-source"},
+        ),
+        candidates={"title-storage": ROOT / "migrations" / "title-storage.sql"},
+    )
+```
+
+The workload directory needs baseline.sql, which creates/seeds only synthetic
+data in the harness-selected schema. An optional initialize(schema, dsn) callback
+can create ORM tables/seed data, as in the real FastAPI case. The baseline read
+uses logical ID 1; adapters can map these logical IDs to real UUIDs in memory.
+Synthetic values and initializer are configurable without editing the runner.
+
+A project needs only its real declared candidate, not invented breaking/expand
+files. Candidate names are lowercase letters, digits, underscores or hyphens,
+start with a letter, and have at most 64 characters. Without an explicit mapping,
+the reference default looks for breaking.sql and expand.sql beside baseline.sql.
+All SQL and initialization code are trusted code; schema isolation is not a sandbox.
+
+Check and run your configuration with the same commands:
+
+```sh
+python3 -m acceptance.project --integration project_acceptance:integration --check
+python3 -m acceptance.project --integration project_acceptance:integration --candidate title-storage --output reports/title-storage
+```
+
+Open reports/title-storage/title-storage.html. Named project candidates have
+individual JSON/Markdown links. The existing paired comparison is specifically
+for matching breaking/expand reference runs; the tool does not fabricate a
+before/after comparison for unrelated project candidates.
+
+## Adapter contract
+
+The factory receives (version, schema, dsn); versions are v1 and v2. Construction
+and configuration must not launch processes. The runner registers each adapter
+before start so partial startup can be cleaned up.
+
+| Member | Required behavior |
 |---|---|
-| `start()` | Launch and wait for readiness; return `{version, pid, transport: 'HTTP'}`. A stopped adapter must be restartable. |
-| `process.pid` | Actual subprocess PID; restart must produce a different PID. |
-| `stop()` | Stop and wait for owned processes; return true only once stopped. Safe to call repeatedly and after partial startup. |
-| `read(conn, id)` | Send an HTTP request and return the normalized email string. `conn` is reserved; do not bypass HTTP with it. |
-| `create(conn, id, email)` | Send an HTTP create request and wait until it commits. |
-| `update(conn, id, email)` | Send an HTTP update request and wait until it commits. |
+| start() | Launch on loopback, wait for database-aware readiness; return {version, pid, transport: HTTP}. Restart must work after stop. |
+| process.pid | The actual owned subprocess; old-app restart must have a different PID. |
+| stop() | Stop and wait for owned processes; return true only when stopped. Safe after partial startup and repeated calls. |
+| read(conn, id) | Make an HTTP request and return the normalized string value. conn is reserved; do not bypass HTTP with it. |
+| create(conn, id, value) | Send HTTP create and wait for the committed result. |
+| update(conn, id, value) | Send HTTP update and wait for the committed result. |
 
-Reuse `Application` if your test app follows the reference protocol. Override
-`command(ready_file)` with an argument list for reviewed v1/v2 launch commands;
-commands execute directly without a shell. The child receives `DATABASE_URL` and
-`ACCEPTANCE_SCHEMA` through its environment. It binds only to loopback and writes
-`{"port": actual_port}` atomically to `ready_file` once listening. `GET /health`
-must query the database and return `{version, pid}`. Customer endpoints are
-`GET /customers/:id`, `POST /customers/:id`, and `PATCH /customers/:id`; writes
-accept `{"email": "synthetic-value"}`, and reads return `{"email": "..."}`.
+Reuse acceptance.http_client.Application for the reference HTTP protocol; override
+command(ready_file) with direct argument lists, not shell commands. For different
+routes/auth/IDs, implement the mapping in reviewed adapter methods. The FastAPI
+case shows actual login, bearer authentication and UUID mapping while preserving
+upstream business routes. Filter child environments to the test values required
+by the app; do not inherit unrelated CI/developer credentials.
 
-Apps with other protocols need their own reviewed adapter. Translate only known
-business incompatibilities into `ApplicationError` with a verified SQLSTATE, or
-an assertion on an expected business result. Unknown server errors, timeouts and
-unclassified HTTP failures must remain INCONCLUSIVE. Never expose raw response
-bodies or server error strings in reports. Do not change errors into success.
+Translate only known incompatibilities into ApplicationError with validated
+SQLSTATE, or an assertion on an expected business result. Unclassified HTTP
+failures, readiness errors and timeouts remain INCONCLUSIVE. Keep response bodies,
+server error text, rows and connection strings out of reports and logs.
 
-## What still needs editing for a real business application
-The fixture and probes currently assume the customer/email example and its known
-record IDs and expected values. A factory alone does not make the harness support
-arbitrary business workflows. Adapt the reviewed fixtures and probes together;
-keep baseline, both versions, both directions of mixed writes, rollback and
-cleanup evidence. Update the required check set and regression cases when the
-workflow changes. Never preserve the old checks while claiming new coverage.
+The same sixteen checks cover baseline, migration, new/old requests, mixed
+creates/updates, restart and old reads of existing/new data. This supports one
+normalized string CRUD workflow, not arbitrary business journeys. Do not claim
+coverage for operations you did not map and execute.
 
-Use the existing team's CI and disposable PostgreSQL service. Do not import
-production data, connect a production database, ingest untrusted adapter code, or
-run uploaded code in a shared service. Schema isolation is not a SQL sandbox.
-Inspect child-process behavior and inherited CI variables before integrating a
-new app. Avoid secrets in the disposable CI job.
+## Verify through the public FastAPI integration
+
+After completing the pinned-source/dependency steps in
+[upstream setup](upstream-fastapi.md), and supplying a disposable database:
+
+```sh
+.upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --check
+.upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --candidate item-title-storage --output reports/upstream-project
+.upstream/source/.venv/bin/python -m acceptance.project --integration integrations.fastapi_case:integration --candidate rename-title --output reports/upstream-project
+```
+
+item-title-storage should pass all sixteen checks and exit 0. rename-title should
+report BLOCK and exit 1. Unlike the upstream known-outcome self-test command,
+this entry point preserves release exit semantics. Different named reports do
+not receive the reference-only comparison link.
+
+CI checks preflight, the named passing upstream candidate and both known-outcome
+integration cases. Adapter-contract also verifies cleanup after partial startup.
+Use your team's existing CI and disposable PostgreSQL service. A checked
+configuration is not deployment approval or a successful customer installation.

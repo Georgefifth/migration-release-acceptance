@@ -18,6 +18,13 @@ def run_report(scenario='expand'):
 
 
 class ReportViewTests(unittest.TestCase):
+    def test_named_project_candidate_links_only_its_own_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            write_reports(run_report('item-title-storage'), directory)
+            page = (Path(directory) / 'item-title-storage.html').read_text()
+            self.assertIn('href="item-title-storage.json"', page)
+            self.assertNotIn('href="comparison.html"', page)
+
     def test_different_or_incomplete_runs_never_get_an_operation_comparison(self):
         left = run_report('breaking')
         for field, value in [('commit', 'other-sha'), ('workload', 'other'),

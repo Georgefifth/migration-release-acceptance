@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from urllib.request import Request
 
 from acceptance.http_client import Application
+from acceptance.integration import Integration, validate
 from acceptance.report import write_reports
 from acceptance.runner import run
 from acceptance.workload import Workload
@@ -24,10 +25,7 @@ def isolated_environment(environment):
     return {key: environment[key] for key in required if key in environment}
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--scenario', choices=['expand', 'breaking'], required=True)
-    args = parser.parse_args()
+def integration():
     shared_ids = {1: SEED_ID}
     admin_password = secrets.token_urlsafe(24)
     jwt_secret = secrets.token_urlsafe(48)
@@ -87,7 +85,17 @@ def main():
         old_update='Updated by old app', new_update='Updated by new app',
         provenance=manifest,
         application_scope='Two independent instances of the pinned upstream FastAPI backend with real login and item CRUD routes; synthetic data.')
-    report = run(args.scenario, os.environ['DATABASE_URL'], application_factory=UpstreamApplication, workload=workload)
+    return Integration(application_factory=UpstreamApplication, workload=workload,
+                       candidates={'rename-title': workload.fixtures / 'breaking.sql',
+                                   'item-title-storage': workload.fixtures / 'expand.sql'})
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--scenario', choices=['expand', 'breaking'], required=True)
+    args = parser.parse_args()
+    config = validate(integration())
+    report = run(args.scenario, os.environ['DATABASE_URL'], application_factory=config.application_factory, workload=config.workload)
     write_reports(report, ROOT / 'reports/upstream')
     print('ACCEPTANCE_REPORT_BEGIN')
     print(json.dumps(report))

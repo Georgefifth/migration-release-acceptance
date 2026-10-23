@@ -1,13 +1,9 @@
 """Runnable project-local adapter example using the synthetic reference app."""
-import argparse
-import json
-import os
 import sys
-from pathlib import Path
 
 from acceptance.http_client import Application
-from acceptance.report import write_reports
-from acceptance.runner import run
+from acceptance.integration import Integration
+from acceptance.workload import Workload
 
 
 class ProjectApplication(Application):
@@ -18,19 +14,14 @@ class ProjectApplication(Application):
                 '--ready-file', str(ready_file)]
 
 
+def integration():
+    return Integration(application_factory=ProjectApplication, workload=Workload())
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--scenario', choices=['expand', 'breaking'], required=True)
-    parser.add_argument('--output', type=Path, default=Path('reports/project-adapter'))
-    args = parser.parse_args()
-    if not os.environ.get('DATABASE_URL') or os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
-        parser.exit(2, 'DATABASE_URL and ACCEPTANCE_DISPOSABLE_DB=yes are required.\n')
-    report = run(args.scenario, os.environ['DATABASE_URL'], application_factory=ProjectApplication)
-    write_reports(report, args.output)
-    print('ACCEPTANCE_REPORT_BEGIN')
-    print(json.dumps(report))
-    print('ACCEPTANCE_REPORT_END')
-    return {'GO_WITHIN_SCOPE': 0, 'BLOCK': 1, 'INCONCLUSIVE': 2}[report['verdict']]
+    from acceptance.project import main as project_main
+    return project_main(['--integration', 'examples.project_acceptance:integration',
+                         '--output', 'reports/project-adapter', *sys.argv[1:]])
 
 
 if __name__ == '__main__':

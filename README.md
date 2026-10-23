@@ -51,6 +51,23 @@ without JavaScript or external assets. You can also use
 the equivalent JSON/Markdown. Exit **0** means `GO_WITHIN_SCOPE`; **2** means
 `INCONCLUSIVE`. No raw rows, database URLs, or server exception messages are saved.
 
+## Connect a reviewed project
+
+Declare your application adapter, synthetic workload, baseline and named candidate
+SQL in one reviewed Python configuration. Check it without starting a database:
+
+```sh
+python3 -m acceptance.project --integration examples.project_acceptance:integration --check
+```
+
+For your own configuration, use the same entry point with `--candidate <name>`
+and disposable database settings. A project can declare a single candidate; it
+does not need to invent breaking/expand demo files. The command produces the same
+sixteen checks and returns 0/1/2 for GO_WITHIN_SCOPE/BLOCK/INCONCLUSIVE. This still
+requires application-specific startup and HTTP-operation mapping; it does not
+discover or integrate an arbitrary application automatically. See
+[the project integration guide](docs/application-integration.md).
+
 ## Rebuild a report from saved evidence
 No database or application process is needed to review an existing run:
 

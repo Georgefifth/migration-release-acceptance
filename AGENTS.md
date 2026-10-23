@@ -48,6 +48,9 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   external database settings, remove owned anonymous volumes, and stop worker
   process groups on interruption. Never claim cleanup when Docker is unavailable.
 - Bind local trial evidence to Git only for a clean checkout rooted here.
+- Project integrations are explicitly imported, reviewed Python code, not a
+  sandbox. Preflight must not construct adapters or contact a database. Named
+  candidate SQL must retain the same gate, probe set and fixture provenance.
 - CI fixture self-tests and the selected-scenario release gate are separate jobs.
 - Report missing evidence honestly. Do not claim the hackathon integration works
   until an actual GitLab Duo session has completed.

@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -47,17 +48,19 @@ def roundtrip(conn, adapter, customer_id, value='created@example.test'):
     equal(adapter.read(conn, customer_id), value)
 
 
-def run(scenario, dsn, application_factory=Application, workload=None):
+def run(scenario, dsn, application_factory=Application, workload=None, migration_path=None):
     import psycopg
     from psycopg import sql
 
     if os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         raise ValueError('Set ACCEPTANCE_DISPOSABLE_DB=yes for a disposable test DB')
-    if scenario not in {'breaking', 'expand'}:
+    if migration_path is None and scenario not in {'breaking', 'expand'}:
         raise ValueError('Unsupported reference scenario')
+    if not isinstance(scenario, str) or not re.fullmatch(r'[a-z][a-z0-9_-]{0,63}', scenario):
+        raise ValueError('Invalid candidate name')
     workload = workload or Workload()
     baseline = (workload.fixtures / 'baseline.sql').read_text()
-    migration = (workload.fixtures / f'{scenario}.sql').read_text()
+    migration = (migration_path if migration_path is not None else workload.fixtures / f'{scenario}.sql').read_text()
     report = {
         'schema_version': 2,
         'transport': 'HTTP',
