@@ -82,7 +82,9 @@ guidance, without inventing which step failed or claiming resources were removed
 The adapter-contract CI job includes a real partial HTTP-process startup failure
 and injected faults for a reserved non-listening loopback database port, invalid
 baseline SQL, invalid candidate SQL, schema-drop failure and connection-close
-failure. Each must stay INCONCLUSIVE, produce the appropriate evidence/guidance,
+failure. It also simulates schema creation completing before the caller receives
+a usable success result, requiring cleanup of that same owned schema. Each fault
+must stay INCONCLUSIVE, produce the appropriate evidence/guidance,
 and omit private injected exception text from JSON/Markdown/HTML. The fault harness
 repairs only its own deliberately retained test schema and independently queries
 for zero leftover test schemas. These are controlled technical regressions, not

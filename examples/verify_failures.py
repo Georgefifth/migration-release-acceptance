@@ -70,19 +70,29 @@ def main():
             text = statement.as_string(self.connection) if hasattr(statement, 'as_string') else statement
             if self.mode == 'drop' and text.startswith('DROP SCHEMA'):
                 raise psycopg.OperationalError(PRIVATE)
-            return self.connection.execute(statement, *args, **kwargs)
+            result = self.connection.execute(statement, *args, **kwargs)
+            if self.mode == 'create-ack' and text.startswith('CREATE SCHEMA'):
+                # Server-side creation completed, but the caller did not receive
+                # a usable success result. Cleanup must still target that schema.
+                raise psycopg.OperationalError(PRIVATE)
+            return result
 
         def close(self):
             self.connection.close()
             if self.mode == 'close':
                 raise RuntimeError(PRIVATE)
 
-    for mode in ('drop', 'close'):
+    for mode in ('create-ack', 'drop', 'close'):
         with patch('psycopg.connect', side_effect=lambda *a, **k: CleanupFault(mode, *a, **k)):
             report = run('expand', dsn)
-        assert report['completed'] and all(c['status'] == 'PASS' for c in report['checks'])
-        assert not report['cleanup_ok']
-        save('cleanup-' + mode, report, 'cleanup_unconfirmed')
+        if mode == 'create-ack':
+            assert not report['completed'] and not report['checks'] and report['cleanup_ok']
+            assert report['cleanup_evidence']['schema_state'] == 'removed'
+            save('schema-create-ack', report, 'schema_setup')
+        else:
+            assert report['completed'] and all(c['status'] == 'PASS' for c in report['checks'])
+            assert not report['cleanup_ok']
+            save('cleanup-' + mode, report, 'cleanup_unconfirmed')
         schema = report['cleanup_evidence']['schema']
         assert re.fullmatch(r'acceptance_[0-9a-f]{32}', schema)
         # Repair only this injected fault's freshly generated owned schema.
