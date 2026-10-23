@@ -65,3 +65,8 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   never override verdicts. Unexpected check exceptions retain a failed row.
   Cleanup uncertainty must include owned resource state without raw error text.
   Verify injected baseline/candidate/connection/cleanup faults via verify_failures.
+
+- Preflight may bind inspectable signatures with placeholders, but must never
+  construct an adapter, invoke an initializer/method or evaluate descriptors.
+  Function-factory return objects and dynamic attributes remain runtime checks.
+  Unknown candidates must fail in check mode as well as execution mode.

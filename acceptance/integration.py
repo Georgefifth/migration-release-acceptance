@@ -1,6 +1,7 @@
 """Explicit, reviewed project configuration. Importing it executes trusted code."""
 from dataclasses import dataclass
 import importlib
+import inspect
 import json
 from pathlib import Path
 import re
@@ -26,12 +27,55 @@ def candidate_paths(config):
     return {name: config.workload.fixtures / (name + '.sql') for name in ('breaking', 'expand')}
 
 
+def check_call(function, count, label):
+    """Bind placeholders only; never invoke factories or application operations."""
+    if inspect.iscoroutinefunction(function) or inspect.isasyncgenfunction(function):
+        raise ConfigurationError(label + ' must be synchronous; the runner does not await application code.')
+    try:
+        signature = inspect.signature(function)
+    except (TypeError, ValueError):
+        # Some extension callables expose no signature. Runtime verification is
+        # still necessary; absence of introspection is not proof of bad code.
+        return
+    try:
+        signature.bind(*([None] * count))
+    except TypeError:
+        raise ConfigurationError(label + ' must accept ' + str(count) + ' positional arguments as used by the runner.') from None
+
+
+def check_factory(factory):
+    check_call(factory, 3, 'application_factory(version, schema, dsn)')
+    if not inspect.isclass(factory):
+        # A function may return any reviewed adapter. Do not call it to inspect.
+        return
+    dynamic = inspect.getattr_static(factory, '__getattr__', None) is not None
+    for name, count in (('start', 0), ('stop', 0), ('read', 2), ('create', 3), ('update', 3)):
+        try:
+            member = inspect.getattr_static(factory, name)
+        except AttributeError:
+            if dynamic:
+                continue
+            raise ConfigurationError('Adapter class must declare ' + name + '(); see the adapter contract.') from None
+        if isinstance(member, staticmethod):
+            function, arguments = member.__func__, count
+        elif isinstance(member, classmethod):
+            function, arguments = member.__func__, count + 1
+        elif inspect.isfunction(member):
+            function, arguments = member, count + 1
+        else:
+            # Descriptors and instance-created methods cannot be checked without
+            # executing application code. Defer these to the actual run.
+            continue
+        check_call(function, arguments, 'Adapter ' + name + '() (including self/cls where applicable)')
+
+
 def validate(config):
     """Check declarations and readable fixtures, without constructing apps or a DB."""
     if not isinstance(config, Integration):
         raise ConfigurationError('The configuration function must return Integration(application_factory, workload).')
     if not callable(config.application_factory):
         raise ConfigurationError('application_factory must be callable; do not launch applications during configuration.')
+    check_factory(config.application_factory)
     workload = config.workload
     if not isinstance(workload, Workload):
         raise ConfigurationError('workload must be a Workload instance.')
@@ -43,6 +87,8 @@ def validate(config):
             raise ConfigurationError('Set the synthetic ' + name + ' value to a string.')
     if workload.initialize is not None and not callable(workload.initialize):
         raise ConfigurationError('initialize must be callable or None.')
+    if workload.initialize is not None:
+        check_call(workload.initialize, 2, 'initialize(schema, dsn)')
     if not isinstance(workload.provenance, dict):
         raise ConfigurationError('provenance must be a JSON-serializable dictionary.')
     try:

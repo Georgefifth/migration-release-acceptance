@@ -18,13 +18,23 @@ or changing verdicts. Validate with controlled database/startup/SQL/cleanup faul
 including passing CRUD with failed cleanup. Preserve conservative behavior for
 missing evidence and keep private exception content out of artifacts.
 
-## Current iteration: use application evidence in the actual release job
+## Completed technical milestone: use application evidence in the actual release job
 
 The real FastAPI integration must feed release-acceptance directly, not only a
 green expected-outcome self-test. Verify both selected candidates at the same
 source commit: the compatible candidate passes and the deliberately breaking
 candidate fails the job/pipeline with BLOCK. Preserve reports on failure and
 document the command for a project's existing CI without adding deployment.
+
+## Current iteration: catch integration mistakes before resource startup
+
+Preflight binds inspectable factory/initializer/class-method signatures without
+invoking them, reports missing class protocol methods and rejects unsupported
+async operations. A candidate typo fails even in check mode. Verify the installed
+wheel rejects invalid configuration without a database and still preserves real
+GO/BLOCK/INCONCLUSIVE runs from a separate generated project. Dynamic factories
+and descriptor behavior remain runtime checks. This is an early-error improvement,
+not evidence of measured onboarding savings.
 
 ## Next: independently reproducible project setup
 

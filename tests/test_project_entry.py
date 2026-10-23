@@ -90,6 +90,70 @@ class ProjectEntryTests(unittest.TestCase):
         self.assertEqual(exit.exception.code, 2)
         run.assert_not_called()
 
+    def test_unknown_candidate_in_check_mode_never_reports_success(self):
+        with patch('acceptance.project.run') as run, contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exit:
+            main(['--integration', 'examples.project_acceptance:integration', '--candidate', 'typo', '--check'])
+        self.assertEqual(exit.exception.code, 2)
+        run.assert_not_called()
+
+    def test_wrong_factory_and_initializer_signatures_are_bounded(self):
+        def wrong_factory(*, private_dsn='postgresql://private-value'):
+            raise AssertionError('Do not invoke')
+        with self.assertRaisesRegex(ConfigurationError, 'application_factory.*3 positional') as error:
+            validate(Integration(wrong_factory, Workload()))
+        self.assertNotIn('private-value', str(error.exception))
+        with self.assertRaisesRegex(ConfigurationError, 'initialize.*2 positional'):
+            validate(Integration(lambda *_: None, Workload(initialize=lambda: None)))
+
+    def test_inherited_class_methods_are_checked_without_construction(self):
+        from acceptance.http_client import Application
+        class MissingUpdate(Application):
+            def __init__(self, *args):
+                raise AssertionError('Do not construct')
+            def update(self, conn, item_id):
+                raise AssertionError('Do not call')
+        with self.assertRaisesRegex(ConfigurationError, 'Adapter update'):
+            validate(Integration(MissingUpdate, Workload()))
+        class Valid(Application):
+            def __init__(self, *args):
+                raise AssertionError('Do not construct')
+        validate(Integration(Valid, Workload()))
+
+    def test_missing_class_protocol_method_is_actionable(self):
+        class Incomplete:
+            def __init__(self, version, schema, dsn):
+                raise AssertionError('Do not construct')
+        with self.assertRaisesRegex(ConfigurationError, 'declare start'):
+            validate(Integration(Incomplete, Workload()))
+
+    def test_async_adapter_operation_is_rejected_before_invocation(self):
+        from acceptance.http_client import Application
+        class AsyncRead(Application):
+            async def read(self, conn, item_id):
+                raise AssertionError('Do not invoke')
+        with self.assertRaisesRegex(ConfigurationError, 'Adapter read.*synchronous'):
+            validate(Integration(AsyncRead, Workload()))
+
+    def test_static_class_and_dynamic_methods_do_not_trigger_descriptors(self):
+        from acceptance.http_client import Application
+        class Supported(Application):
+            @staticmethod
+            def read(conn, item_id):
+                raise AssertionError('Do not invoke')
+            @classmethod
+            def update(cls, conn, item_id, value):
+                raise AssertionError('Do not invoke')
+            @property
+            def start(self):
+                raise AssertionError('Do not evaluate descriptor')
+        validate(Integration(Supported, Workload()))
+        class Dynamic:
+            def __init__(self, *args):
+                raise AssertionError('Do not construct')
+            def __getattr__(self, name):
+                raise AssertionError('Do not resolve dynamic methods')
+        validate(Integration(Dynamic, Workload()))
+
     def test_recorded_verdicts_retain_release_exit_codes(self):
         config = load('examples.project_acceptance:integration')
         for verdict, code in [('GO_WITHIN_SCOPE', 0), ('BLOCK', 1), ('INCONCLUSIVE', 2)]:

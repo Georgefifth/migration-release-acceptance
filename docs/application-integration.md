@@ -21,7 +21,25 @@ python3 -m acceptance.project --integration examples.project_acceptance:integrat
 
 This checks the returned configuration, value types, baseline and declared SQL
 files without constructing adapters, launching apps or accessing a database.
+Version 0.1.2 also binds placeholder arguments to inspectable factory and
+initializer signatures. For class factories, it checks declared/inherited
+start, stop, read, create and update method signatures and rejects async methods
+that the synchronous runner cannot await. It never calls these operations.
 It does not execute SQL, verify HTTP endpoints or establish compatibility.
+Use --candidate with --check to catch a misspelled candidate before starting a
+DB service; an undeclared name exits 2 in both check and run modes:
+
+```sh
+migration-accept --integration project_acceptance:integration --candidate title-storage --check
+```
+
+A function factory's returned object cannot be inspected without calling it.
+Dynamic attributes, descriptors and callables without an inspectable signature
+remain runtime checks. A class adapter should declare its protocol methods;
+functions may return adapters whose methods are created during construction.
+A successful check does not establish correct return values, HTTP routing,
+authentication, readiness, cleanup or SQL semantics.
+
 The named Python module is imported and its configuration function is called:
 only use code you have reviewed. These imports are not sandboxed.
 

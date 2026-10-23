@@ -35,14 +35,15 @@ def execute(parser, args):
         config = load(args.integration)
     except ConfigurationError as exc:
         parser.exit(2, 'Configuration check failed: ' + str(exc) + '\n')
+    if args.scenario is not None and args.scenario not in candidate_paths(config):
+        parser.exit(2, 'Unknown candidate. Run --check to list the declared candidate names.\n')
     if args.check:
         print('Configuration, baseline SQL and declared candidate files are ready.')
+        print('Inspectable factory, class-method and initializer call signatures checked without invocation.')
         print('Candidates: ' + ', '.join(candidate_paths(config)))
         print('No application or database was started by this check. The configuration itself is trusted Python code.')
         print('Runtime startup, SQL correctness and compatibility still require an acceptance run.')
         return 0
-    if args.scenario not in candidate_paths(config):
-        parser.exit(2, 'Unknown candidate. Run --check to list the declared candidate names.\n')
     dsn = os.environ.get('DATABASE_URL')
     if not dsn or os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         parser.exit(2, 'DATABASE_URL and ACCEPTANCE_DISPOSABLE_DB=yes are required for your disposable test database.\n')

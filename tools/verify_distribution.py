@@ -93,6 +93,16 @@ def integration():
         accept = str(venv_path / 'bin/migration-accept')
         review = str(venv_path / 'bin/migration-report')
         command([accept, '--integration', 'project_acceptance:integration', '--check'], downstream, check_env)
+        invalid = downstream / 'invalid_acceptance.py'
+        invalid.write_text('from acceptance.integration import Integration\n'
+                           'from acceptance.workload import Workload\n'
+                           'def wrong_factory(): raise AssertionError("Must not construct")\n'
+                           'def integration(): return Integration(wrong_factory, Workload())\n')
+        command([accept, '--integration', 'invalid_acceptance:integration', '--check'],
+                downstream, check_env, expected=2)
+        command([accept, '--integration', 'project_acceptance:integration', '--candidate', 'typo', '--check'],
+                downstream, check_env, expected=2)
+        print('Installed wheel: invalid factory and unknown checked candidate rejected without a database')
         # Also exercise the installed default package-data paths without any DB.
         command([python, '-c', 'from acceptance.integration import Integration, validate; from acceptance.workload import Workload; from acceptance.http_client import Application; validate(Integration(Application, Workload()))'], downstream, check_env)
         runs = []
@@ -124,6 +134,7 @@ def integration():
         receipt = dict(wheel=wheel.name, wheel_sha256=wheel_sha, distribution_version=version,
                        imports_from_installed_wheel=True, source_checkout_on_pythonpath=False,
                        downstream_configuration_loaded=True, preflight_without_database=True,
+                       invalid_factory_and_checked_candidate_rejected=True,
                        bundled_fixtures_verified=True, offline_render_without_database=True,
                        unavailable_database_exit_2_and_guidance_verified=True,
                        runs=runs, independent_customer_validation=False)
