@@ -58,3 +58,7 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   it in the wheel. Do not publish to a package index without user authorization.
 - Report missing evidence honestly. Do not claim the hackathon integration works
   until an actual GitLab Duo session has completed.
+- Failure guidance must be derived from bounded recorded phases/operations and
+  never override verdicts. Unexpected check exceptions retain a failed row.
+  Cleanup uncertainty must include owned resource state without raw error text.
+  Verify injected baseline/candidate/connection/cleanup faults via verify_failures.

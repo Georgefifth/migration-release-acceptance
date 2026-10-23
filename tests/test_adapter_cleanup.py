@@ -32,6 +32,8 @@ class AdapterCleanupTests(unittest.TestCase):
         self.assertEqual(result['verdict'], 'INCONCLUSIVE')
         self.assertEqual(result['error'], {'kind': 'RuntimeError'})
         self.assertFalse(result['completed'])
+        self.assertFalse(result['cleanup_ok'], 'A failing constructor may not have returned all of its resources')
+        self.assertEqual(result['cleanup_evidence']['schema_state'], 'not_requested')
         self.assertNotIn('sensitive', str(result))
 
     def test_invalid_adapter_contract_is_inconclusive_before_database_access(self):

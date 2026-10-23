@@ -50,6 +50,9 @@ stage-by-stage findings and a failures-only filter. After both runs, open
 without JavaScript or external assets. You can also use
 the equivalent JSON/Markdown. Exit **0** means `GO_WITHIN_SCOPE`; **2** means
 `INCONCLUSIVE`. No raw rows, database URLs, or server exception messages are saved.
+Incomplete runs now identify the failed phase and separate app/schema/connection
+cleanup evidence. See [troubleshooting](docs/troubleshooting.md) for next checks
+and recovery after unconfirmed cleanup.
 
 ## Connect a reviewed project
 
@@ -111,6 +114,7 @@ replication or performance claim is made. Rollback does not undo the database.
 Passing fixture checks is not a general guarantee of migration safety.
 
 ## Documentation
+- [Understand failures and cleanup](docs/troubleshooting.md)
 - [Install into your project](docs/installation.md)
 - [Iteration plan and release boundaries](docs/iteration-plan.md)
 - [Demo walkthrough and verified evidence](docs/recording-runbook.md)

@@ -12,6 +12,7 @@ from pathlib import Path
 from .http_client import Application, ApplicationError
 from .report import write_reports
 from .workload import Workload
+from .diagnostics import summary_lines
 
 ROOT = Path(__file__).resolve().parent.parent
 CHECK_IDS = (
@@ -86,6 +87,11 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         ],
     }
     schema = 'acceptance_' + uuid.uuid4().hex
+    cleanup = dict(schema=schema, schema_state='not_requested',
+                   applications_stopped=None, connection_closed=None)
+    report['cleanup_evidence'] = cleanup
+    phase = 'adapter_construction'
+    active_check = None
     conn = None
     created = False
     # A reviewed project-local callable may supply the two application adapters.
@@ -108,6 +114,8 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         return evidence
 
     def check(check_id, stage, version, operation, fn):
+        nonlocal phase, active_check
+        phase, active_check = 'application_checks', check_id
         start = time.monotonic()
         item = dict(id=check_id, stage=stage, version=version, operation=operation.replace('customer', workload.entity))
         try:
@@ -120,8 +128,12 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
                         else 'infrastructure_or_unknown')
         except AssertionError:
             item.update(status='FAIL', failure_kind='compatibility', sqlstate=None)
-        item['duration_ms'] = round((time.monotonic() - start) * 1000, 2)
-        report['checks'].append(item)
+        except Exception:
+            item.update(status='FAIL', failure_kind='infrastructure_or_unknown', sqlstate=None)
+            raise
+        finally:
+            item['duration_ms'] = round((time.monotonic() - start) * 1000, 2)
+            report['checks'].append(item)
         return item['status'] == 'PASS'
 
     try:
@@ -134,15 +146,21 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
                 if not callable(getattr(application, method, None)):
                     raise TypeError('Application adapter is missing a required method')
         # Caller must supply a dedicated disposable DB; SQL fixtures are trusted code.
+        phase = 'database_connection'
         conn = psycopg.connect(dsn, autocommit=True, connect_timeout=10)
+        phase = 'schema_setup'
         conn.execute("SET statement_timeout = '5s'")
         conn.execute("SET lock_timeout = '2s'")
+        cleanup['schema_state'] = 'unconfirmed'
         conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(schema)))
         created = True
+        cleanup['schema_state'] = 'present'
         conn.execute(sql.SQL('SET search_path TO {}, pg_catalog').format(sql.Identifier(schema)))
+        phase = 'baseline_setup'
         with conn.transaction():
             conn.execute(baseline)
         if workload.initialize is not None:
+            phase = 'workload_initialization'
             workload.initialize(schema, dsn)
         report['postgres_version'] = conn.info.server_version
         if not check('applications_started', 'baseline', 'v1', 'Start independent old HTTP application',
@@ -207,8 +225,10 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
     except psycopg.Error as exc:
         # Do not serialize exceptions: server messages can contain rows/credentials.
         report['error'] = {'kind': 'database_setup_or_connection', 'sqlstate': exc.sqlstate}
+        report['error_context'] = dict(phase=phase, check_id=active_check)
     except Exception as exc:
         report['error'] = {'kind': type(exc).__name__}
+        report['error_context'] = dict(phase=phase, check_id=active_check)
     finally:
         processes_stopped = True
         for app in applications:
@@ -216,16 +236,25 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
                 processes_stopped = app.stop() and processes_stopped
             except Exception:
                 processes_stopped = False
+        cleanup['applications_stopped'] = processes_stopped
         if conn is not None:
             try:
-                if created:
+                if created or cleanup['schema_state'] == 'unconfirmed':
                     # Only drop the fresh random schema created by this exact run.
-                    conn.execute(sql.SQL('DROP SCHEMA {} CASCADE').format(sql.Identifier(schema)))
-                report['cleanup_ok'] = processes_stopped
-            except psycopg.Error:
-                report['cleanup_ok'] = False
+                    conn.execute(sql.SQL('DROP SCHEMA IF EXISTS {} CASCADE').format(sql.Identifier(schema)))
+                    cleanup['schema_state'] = 'removed'
+            except Exception:
+                cleanup['schema_state'] = 'unconfirmed'
             finally:
-                conn.close()
+                try:
+                    conn.close()
+                    cleanup['connection_closed'] = True
+                except Exception:
+                    cleanup['connection_closed'] = False
+        report['cleanup_ok'] = (processes_stopped
+                                and cleanup['schema_state'] in {'not_requested', 'removed'}
+                                and cleanup['connection_closed'] is not False
+                                and phase != 'adapter_construction')
         report['verdict'] = verdict(report)
     return report
 
@@ -244,6 +273,7 @@ def main():
     print('ACCEPTANCE_REPORT_BEGIN')
     print(json.dumps(report))
     print('ACCEPTANCE_REPORT_END')
+    print('\n'.join(summary_lines(report)))
     return {'GO_WITHIN_SCOPE': 0, 'BLOCK': 1, 'INCONCLUSIVE': 2}[report['verdict']]
 
 

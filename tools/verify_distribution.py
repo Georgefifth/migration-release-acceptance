@@ -1,9 +1,11 @@
 """Install a built wheel and exercise it from an owned downstream test project."""
+import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import tempfile
 import venv
@@ -34,9 +36,12 @@ def command(args, directory, environment, expected=0, timeout=180):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--wheel', type=Path, help='Specific reviewed wheel; default requires one wheel in dist/')
+    args = parser.parse_args()
     if not os.environ.get('DATABASE_URL') or os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         raise RuntimeError('A disposable database is required for the wheel contract test')
-    wheels = list((ROOT / 'dist').glob('*.whl'))
+    wheels = [args.wheel.resolve()] if args.wheel else list((ROOT / 'dist').glob('*.whl'))
     if len(wheels) != 1:
         raise RuntimeError('Build exactly one wheel in dist before verification')
     wheel = wheels[0]
@@ -62,6 +67,7 @@ def main():
         python = str(venv_path / 'bin/python')
         print('Installing the wheel and declared dependencies into a fresh virtualenv.', flush=True)
         command([python, '-m', 'pip', 'install', str(wheel)], downstream, environment)
+        version = command([python, '-I', '-c', 'from importlib.metadata import version; print(version("migration-release-acceptance"))'], downstream, environment).strip()
         installed = command([python, '-I', '-c', 'import acceptance; print(acceptance.__file__)'], downstream, environment).strip()
         assert Path(installed).is_relative_to(venv_path), 'The test must import the installed wheel'
         (downstream / 'project_acceptance.py').write_text('''from pathlib import Path
@@ -101,12 +107,25 @@ def integration():
             runs.append(dict(candidate=candidate, verdict=verdict, exit_code=status,
                              run_id=report['run_id'], passed=passed, cleanup_ok=True))
             print(f'Installed wheel: {candidate} => {verdict}; {passed}/16 PASS; cleanup verified')
+        with socket.socket() as reserved:
+            reserved.bind(('127.0.0.1', 0))
+            unavailable = dict(runtime, DATABASE_URL=f'postgresql://acceptance:synthetic@127.0.0.1:{reserved.getsockname()[1]}/acceptance')
+            text = command([accept, '--integration', 'project_acceptance:integration', '--candidate', 'contact-storage',
+                            '--output', str(output / 'database-unavailable')], downstream, unavailable, expected=2)
+            failed = json.loads(text.split('ACCEPTANCE_REPORT_BEGIN\n', 1)[1].split('\nACCEPTANCE_REPORT_END', 1)[0])
+            assert failed['verdict'] == 'INCONCLUSIVE' and not failed['checks']
+            assert failed['error_context']['phase'] == 'database_connection'
+            assert failed['cleanup_evidence']['schema_state'] == 'not_requested'
+            assert 'The disposable database connection failed.' in text
+            assert 'postgresql://' not in text
+            print('Installed wheel: unavailable database => INCONCLUSIVE/exit 2; bounded guidance verified')
         command([review, str(output / 'contact-storage.json'), '--output', str(output / 'offline')], downstream, check_env)
         assert (output / 'offline/contact-storage.html').is_file()
-        receipt = dict(wheel=wheel.name, wheel_sha256=wheel_sha, distribution_version='0.1.0',
+        receipt = dict(wheel=wheel.name, wheel_sha256=wheel_sha, distribution_version=version,
                        imports_from_installed_wheel=True, source_checkout_on_pythonpath=False,
                        downstream_configuration_loaded=True, preflight_without_database=True,
                        bundled_fixtures_verified=True, offline_render_without_database=True,
+                       unavailable_database_exit_2_and_guidance_verified=True,
                        runs=runs, independent_customer_validation=False)
         (output / 'verification.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print('Wheel contract verified from a separate generated project; this is a synthetic integration test.')

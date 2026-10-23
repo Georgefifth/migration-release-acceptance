@@ -8,6 +8,7 @@ from pathlib import Path
 from .integration import ConfigurationError, candidate_paths, load
 from .report import write_reports
 from .runner import run
+from .diagnostics import summary_lines
 
 
 def main(argv=None):
@@ -54,6 +55,7 @@ def execute(parser, args):
     print('ACCEPTANCE_REPORT_BEGIN')
     print(json.dumps(report))
     print('ACCEPTANCE_REPORT_END')
+    print('\n'.join(summary_lines(report)))
     print('Report: ' + str((args.output / (args.scenario + '.html')).resolve()))
     return {'GO_WITHIN_SCOPE': 0, 'BLOCK': 1, 'INCONCLUSIVE': 2}[report['verdict']]
 

@@ -3,6 +3,7 @@ import re
 import json
 from pathlib import Path
 from .report_ui import html_report, write_comparison
+from .diagnostics import troubleshooting
 
 
 def markdown(report):
@@ -23,6 +24,11 @@ def markdown(report):
     lines += ['- ' + item for item in report['limitations']]
     if report.get('error'):
         lines += ['', 'Execution error: ' + json.dumps(report['error'])]
+    for issue in troubleshooting(report):
+        lines += ['', '## ' + issue['title'], '', issue['detail'], '']
+        lines += ['- ' + action for action in issue['actions']]
+    if report.get('cleanup_evidence'):
+        lines += ['', 'Cleanup evidence: `' + json.dumps(report['cleanup_evidence'], sort_keys=True) + '`']
     return '\n'.join(lines) + '\n'
 
 

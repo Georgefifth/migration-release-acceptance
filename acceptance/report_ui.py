@@ -3,6 +3,7 @@ import html
 import json
 from pathlib import Path
 from urllib.parse import quote, urlsplit
+from .diagnostics import troubleshooting
 
 
 STYLE = '''
@@ -17,7 +18,7 @@ code,pre{font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;overflow
 .verdict{display:inline-block;font-size:14px;font-weight:700;padding:4px 10px;border:1px solid currentColor;border-radius:4px;margin-top:28px}.pass{color:var(--pass)}.fail{color:var(--fail)}.unknown{color:var(--ink)}
 .facts{display:flex;flex-wrap:wrap;gap:12px 30px;margin:22px 0 28px}.facts span{font-size:14px}.facts strong{font-size:20px;margin-right:5px;font-weight:650}
 .stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:24px 0 28px;padding:0;list-style:none;gap:4px}.stages li{background:var(--field);padding:13px 12px;border-bottom:4px solid #a9b6ca;min-height:97px}.stages .pass{border-color:var(--pass)}.stages .fail{border-color:var(--fail)}.stages b{display:block;color:var(--ink);font-weight:600;font-size:15px}.stages small{display:block;margin-top:6px;font-size:12px}
-.finding{border-left:4px solid var(--fail);background:#fcf5f6;padding:16px 20px;margin:24px 0}.finding p{margin:3px 0}.finding.neutral{border-color:var(--link);background:var(--field)}
+.finding{overflow-wrap:anywhere;border-left:4px solid var(--fail);background:#fcf5f6;padding:16px 20px;margin:24px 0}.finding p{margin:3px 0}.finding.neutral{border-color:var(--link);background:var(--field)}
 .check-region>input{accent-color:var(--link);margin:0 6px 0 0}.check-region>label{font-size:14px;margin-right:22px;cursor:pointer}.table-shell{overflow-x:auto;margin-top:16px;border:1px solid #dce3ee;border-radius:5px}table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}th{font-weight:600;background:var(--field);padding:12px 14px;border-bottom:1px solid #cbd5e4;white-space:nowrap}td{padding:13px 14px;border-bottom:1px solid #e4e9f1;vertical-align:top}tr:last-child td{border-bottom:0}td p{margin:0}td small{display:block;font-size:12px;margin-top:4px}.check-id{color:#65748b;font-size:11px}td:nth-last-child(2){white-space:nowrap}.result{font-weight:650}.result::before{content:'●';font-size:9px;margin-right:6px}
 #fail-only:checked~.table-shell tr[data-result="PASS"]{display:none}#fail-only:checked~.empty-note{display:block}.empty-note{display:none;font-size:14px;margin-top:14px}
 details{margin:18px 0;border:1px solid #dce3ee;padding:14px 18px;border-radius:5px}summary{cursor:pointer;font-weight:600}dl{display:grid;grid-template-columns:150px minmax(0,1fr);font-size:14px;gap:8px 20px;margin:18px 0 8px}dt{color:#586981}dd{margin:0;min-width:0}ul.limits{padding-left:20px;font-size:14px;max-width:80ch}ul.limits li{margin:6px 0}footer{border-top:1px solid #dce3ee;margin-top:30px;padding-top:18px;font-size:13px;color:#586981}
@@ -97,7 +98,9 @@ def html_report(report):
         body += f'<li class="{tone(status)}"><b>{label}</b><small>{esc(description)}</small></li>'
     body += '</ol>'
     if report.get('verdict') == 'INCONCLUSIVE' or not report.get('completed') or not report.get('cleanup_ok'):
-        body += '<aside class="finding neutral"><h3>Resolve the evidence gap first</h3><p>Inspect the execution details, restore successful setup and cleanup, then rerun before judging the migration.</p></aside>'
+        for issue in troubleshooting(report):
+            body += '<aside class="finding neutral"><h3>' + esc(issue['title']) + '</h3><p>' + esc(issue['detail']) + '</p><ul>'
+            body += ''.join('<li>' + esc(action) + '</li>' for action in issue['actions']) + '</ul></aside>'
     elif failed:
         first = failed[0]
         body += '<aside class="finding"><h3>First recorded failure</h3><p><strong>' + esc(first['operation']) + '</strong> / ' + esc(first['version']) + '</p>'
@@ -130,6 +133,9 @@ def html_report(report):
     body += '</details>'
     if report.get('error'):
         body += '<details open><summary>Execution details</summary><pre>' + esc(json.dumps(report['error'], indent=2)) + '</pre></details>'
+    if report.get('error_context') or report.get('cleanup_evidence'):
+        evidence = {key: report[key] for key in ('error_context', 'cleanup_evidence') if key in report}
+        body += '<details><summary>Failure context and cleanup evidence</summary><pre>' + esc(json.dumps(evidence, indent=2)) + '</pre></details>'
     body += '<h2>What this run covers</h2><ul class="limits">' + ''.join('<li>' + esc(v) + '</li>' for v in report.get('limitations', [])) + '</ul>'
     body += '<footer>A recorded GO_WITHIN_SCOPE is evidence for these probes. Merge and deployment remain human decisions.</footer>'
     return shell('Migration acceptance: ' + report['verdict'], body)

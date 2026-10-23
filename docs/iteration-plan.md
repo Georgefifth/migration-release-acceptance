@@ -3,12 +3,20 @@
 The intended product is a usable compatibility acceptance tool, not a growing
 collection of examples. Keep the following release boundaries explicit.
 
-## Current iteration: installation and downstream invocation
+## Completed technical milestone: installation and downstream invocation
 
 Ship a wheel and installed commands that run from an application's own project.
 Require an isolated package-contract CI job with packaged SQL, preflight, actual
 HTTP/DB execution, correct release exits and offline rendering. A source-tree-only
 test is insufficient. Do not publish on PyPI as part of this iteration.
+
+## Current iteration: actionable failure evidence
+
+Record the actual failed step and distinguish application stop, schema removal
+and connection close. Explain what to check next without inventing a root cause
+or changing verdicts. Validate with controlled database/startup/SQL/cleanup faults,
+including passing CRUD with failed cleanup. Preserve conservative behavior for
+missing evidence and keep private exception content out of artifacts.
 
 ## Next: independently reproducible project setup
 

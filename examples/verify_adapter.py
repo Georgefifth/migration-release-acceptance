@@ -5,6 +5,7 @@ from pathlib import Path
 from acceptance.report import write_reports
 from acceptance.runner import CHECK_IDS, run
 from .project_acceptance import ProjectApplication
+from acceptance.diagnostics import troubleshooting
 
 
 class StartupFailure(ProjectApplication):
@@ -29,6 +30,10 @@ def main():
     assert report['cleanup_ok'], 'Partially started application must be stopped and schema removed'
     assert not report['completed']
     assert report['error'] == {'kind': 'RuntimeError'}
+    assert report['error_context']['check_id'] == 'applications_started'
+    assert report['checks'][0]['status'] == 'FAIL'
+    assert troubleshooting(report)[0]['code'] == 'application_startup'
+    assert report['cleanup_evidence']['schema_state'] == 'removed'
     print('Partial-startup failure => INCONCLUSIVE; process and schema cleanup verified')
 
 
