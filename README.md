@@ -53,6 +53,11 @@ the equivalent JSON/Markdown. Exit **0** means `GO_WITHIN_SCOPE`; **2** means
 
 ## Connect a reviewed project
 
+The tool can be installed into your project's test virtualenv from a built wheel.
+You do not need to copy your application into this repository. See
+[installation and downstream use](docs/installation.md); the package is not
+published on PyPI. Installed commands are `migration-accept` and `migration-report`.
+
 Declare your application adapter, synthetic workload, baseline and named candidate
 SQL in one reviewed Python configuration. Check it without starting a database:
 
@@ -81,16 +86,19 @@ before output is written, and two runs of the same candidate are rejected.
 Incomplete or mismatched evidence remains explicit in the comparison page.
 
 ## GitLab CI
-Push a branch or open an MR. Five jobs run:
+Push a branch or open an MR. Six jobs run:
 1. `unit`: guard against unsafe gate/report behavior.
 2. `fixture-regressions`: verify that both known fixtures produce the expected
    results. Its green status means the harness works, not that breaking SQL is safe.
 3. `adapter-contract`: run the project-local adapter example and verify cleanup
    after a partially started app fails. This is also a harness self-test.
-4. `upstream-fastapi`: exercise actual login and item CRUD in a pinned public
+4. `package-contract`: build a wheel, install it into a new virtualenv and run
+   a generated downstream project outside the checkout, including blocked/passing
+   candidates and database-free report rendering. Synthetic installation evidence.
+5. `upstream-fastapi`: exercise actual login and item CRUD in a pinned public
    FastAPI backend, with a reviewed column-mapping change. Integration evidence,
    not real-team adoption or approval of arbitrary migrations.
-5. `release-acceptance`: checks the pipeline input `migration_scenario` (default
+6. `release-acceptance`: checks the pipeline input `migration_scenario` (default
    `expand`). Selecting `breaking` makes the release gate fail. Download reports
    from job artifacts. Inputs are restricted to these two reference fixtures.
 
@@ -103,6 +111,8 @@ replication or performance claim is made. Rollback does not undo the database.
 Passing fixture checks is not a general guarantee of migration safety.
 
 ## Documentation
+- [Install into your project](docs/installation.md)
+- [Iteration plan and release boundaries](docs/iteration-plan.md)
 - [Demo walkthrough and verified evidence](docs/recording-runbook.md)
 - [English demo narration](docs/demo-script.md)
 - [Current product status and remaining questions](docs/project-status.md)

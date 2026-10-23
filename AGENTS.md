@@ -52,5 +52,9 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   sandbox. Preflight must not construct adapters or contact a database. Named
   candidate SQL must retain the same gate, probe set and fixture provenance.
 - CI fixture self-tests and the selected-scenario release gate are separate jobs.
+- Distribution changes must pass package-contract: a non-editable wheel installed
+  into a fresh venv, invoked from a separate generated project without the source
+  checkout on PYTHONPATH. Keep bundled SQL inside acceptance/fixtures and include
+  it in the wheel. Do not publish to a package index without user authorization.
 - Report missing evidence honestly. Do not claim the hackathon integration works
   until an actual GitLab Duo session has completed.

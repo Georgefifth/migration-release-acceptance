@@ -3,6 +3,7 @@ import contextlib
 from dataclasses import replace
 import io
 import os
+import sys
 from pathlib import Path
 import tempfile
 import types
@@ -15,6 +16,24 @@ from acceptance.workload import Workload
 
 
 class ProjectEntryTests(unittest.TestCase):
+    def test_console_entry_loads_configuration_from_invoking_project_and_restores_path(self):
+        before = sys.path[:]
+        previous = Path.cwd()
+        with tempfile.TemporaryDirectory() as temporary:
+            Path(temporary, 'downstream_test_configuration.py').write_text(
+                'from acceptance.integration import Integration\n'
+                'from acceptance.http_client import Application\n'
+                'from acceptance.workload import Workload\n'
+                'def integration(): return Integration(Application, Workload())\n')
+            try:
+                os.chdir(temporary)
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(['--integration', 'downstream_test_configuration:integration', '--check']), 0)
+                self.assertEqual(sys.path, before)
+            finally:
+                os.chdir(previous)
+                sys.modules.pop('downstream_test_configuration', None)
+
     def test_reference_preflight_does_not_construct_apps_or_access_database(self):
         from examples.project_acceptance import ProjectApplication
         output = io.StringIO()

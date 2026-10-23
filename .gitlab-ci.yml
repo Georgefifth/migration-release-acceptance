@@ -62,6 +62,17 @@ adapter-contract:
     # Integration smoke tests, including partial-startup cleanup; not release approval.
     - python -m examples.verify_adapter
 
+package-contract:
+  extends: .postgres
+  stage: test
+  script:
+    - python -m pip wheel --no-deps --wheel-dir dist .
+    - python tools/verify_distribution.py
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths: [dist/, reports/]
+
 upstream-fastapi:
   extends: .postgres
   image: python:3.14-slim

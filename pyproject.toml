@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "migration-release-acceptance"
+version = "0.1.0"
+description = "Scoped PostgreSQL old/new application compatibility evidence"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+dynamic = ["dependencies"]
+
+[project.scripts]
+migration-accept = "acceptance.project:main"
+migration-report = "acceptance.report:main"
+
+[tool.setuptools]
+packages = ["acceptance"]
+
+[tool.setuptools.package-data]
+acceptance = ["fixtures/*.sql"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

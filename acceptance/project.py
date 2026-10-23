@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 from .integration import ConfigurationError, candidate_paths, load
@@ -17,7 +18,18 @@ def main(argv=None):
     parser.add_argument('--output', type=Path, default=Path('reports/project'))
     args = parser.parse_args(argv)
     if not args.check and args.scenario is None:
-        parser.error('--scenario is required when running acceptance')
+        parser.error('--candidate is required when running acceptance')
+    # Console scripts start from their bin directory, unlike python -m. Explicitly
+    # make the invoking project's reviewed configuration importable for this run.
+    previous_path = sys.path[:]
+    sys.path.insert(0, str(Path.cwd()))
+    try:
+        return execute(parser, args)
+    finally:
+        sys.path[:] = previous_path
+
+
+def execute(parser, args):
     try:
         config = load(args.integration)
     except ConfigurationError as exc:

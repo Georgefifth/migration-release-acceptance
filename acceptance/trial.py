@@ -75,6 +75,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='Check prerequisites without creating resources')
     args = parser.parse_args(argv)
+    if not args.check and not (ROOT / 'requirements.txt').is_file():
+        print('The Docker trial requires a source checkout. For an installed tool, use migration-accept with your reviewed project configuration.', file=sys.stderr)
+        return 2
     if os.name != 'posix' or sys.version_info < (3, 12):
         print('Use Python 3.12+ on Linux or macOS (including a Linux WSL environment).', file=sys.stderr)
         return 2

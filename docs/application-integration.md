@@ -5,6 +5,12 @@ It does not discover your application automatically. You still provide reviewed
 startup, HTTP-operation mapping, synthetic baseline data and candidate SQL.
 There is no independent customer installation or measured setup saving yet.
 
+To work from your own repository, first install the wheel into your project's test
+virtualenv using [the installation guide](installation.md). Then run
+`migration-accept` from your project directory with the same options shown below.
+The installed entry point imports only the explicitly named configuration; it
+does not search for or automatically execute other project files.
+
 ## Check the runnable reference integration
 
 From the repository root, no database or psycopg installation is needed for:

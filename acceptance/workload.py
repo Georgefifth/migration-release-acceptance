@@ -7,7 +7,7 @@ from typing import Callable
 @dataclass(frozen=True)
 class Workload:
     name: str = 'customer-reference'
-    fixtures: Path = Path(__file__).resolve().parent.parent / 'fixtures'
+    fixtures: Path = Path(__file__).resolve().parent / 'fixtures'
     entity: str = 'customer'
     initialize: Callable | None = None
     initial: str = 'initial@example.test'

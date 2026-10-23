@@ -1,0 +1,119 @@
+"""Install a built wheel and exercise it from an owned downstream test project."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import tempfile
+import venv
+import zipfile
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def command(args, directory, environment, expected=0, timeout=180):
+    process = subprocess.Popen(args, cwd=directory, env=environment,
+                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                               text=True, start_new_session=True)
+    try:
+        stdout, _ = process.communicate(timeout=timeout)
+        if process.returncode != expected:
+            raise RuntimeError('Distribution verification command returned an unexpected status')
+        return stdout
+    except BaseException:
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.killpg(process.pid, sig)
+                process.wait(timeout=5)
+            except (ProcessLookupError, subprocess.TimeoutExpired):
+                pass
+        raise
+    finally:
+        process.stdout.close()
+
+
+def main():
+    if not os.environ.get('DATABASE_URL') or os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
+        raise RuntimeError('A disposable database is required for the wheel contract test')
+    wheels = list((ROOT / 'dist').glob('*.whl'))
+    if len(wheels) != 1:
+        raise RuntimeError('Build exactly one wheel in dist before verification')
+    wheel = wheels[0]
+    wheel_sha = hashlib.sha256(wheel.read_bytes()).hexdigest()
+    output = ROOT / 'reports/wheel-contract'
+    output.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='acceptance-downstream-') as temporary:
+        stage = Path(temporary)
+        downstream = stage / 'project'
+        fixtures = downstream / 'fixtures'
+        fixtures.mkdir(parents=True)
+        with zipfile.ZipFile(wheel) as archive:
+            names = archive.namelist()
+            assert not any(name.startswith(('examples/', 'integrations/', 'tests/', 'reports/')) for name in names)
+            assert any(name.endswith('.dist-info/licenses/LICENSE') for name in names)
+            for name in ('baseline.sql', 'breaking.sql', 'expand.sql'):
+                (fixtures / name).write_bytes(archive.read('acceptance/fixtures/' + name))
+        environment = dict(os.environ)
+        environment.pop('PYTHONPATH', None)
+        environment.pop('PYTHONHOME', None)
+        venv_path = stage / 'venv'
+        venv.EnvBuilder(with_pip=True).create(venv_path)
+        python = str(venv_path / 'bin/python')
+        print('Installing the wheel and declared dependencies into a fresh virtualenv.', flush=True)
+        command([python, '-m', 'pip', 'install', str(wheel)], downstream, environment)
+        installed = command([python, '-I', '-c', 'import acceptance; print(acceptance.__file__)'], downstream, environment).strip()
+        assert Path(installed).is_relative_to(venv_path), 'The test must import the installed wheel'
+        (downstream / 'project_acceptance.py').write_text('''from pathlib import Path
+from acceptance.http_client import Application
+from acceptance.integration import Integration
+from acceptance.workload import Workload
+
+ROOT = Path(__file__).resolve().parent
+
+def integration():
+    return Integration(
+        application_factory=Application,
+        workload=Workload(name="installed-wheel-reference", fixtures=ROOT / "fixtures",
+                          provenance={"application": "bundled synthetic HTTP reference"}),
+        candidates={"rename-contact": ROOT / "fixtures/breaking.sql",
+                    "contact-storage": ROOT / "fixtures/expand.sql"})
+''')
+        # Runtime apps inherit only test connection/identity variables, not CI tokens.
+        runtime = {key: os.environ[key] for key in ('PATH', 'DATABASE_URL', 'ACCEPTANCE_DISPOSABLE_DB',
+                                                   'CI_COMMIT_SHA', 'CI_PIPELINE_URL') if key in os.environ}
+        check_env = {key: value for key, value in runtime.items()
+                     if key not in {'DATABASE_URL', 'ACCEPTANCE_DISPOSABLE_DB'}}
+        accept = str(venv_path / 'bin/migration-accept')
+        review = str(venv_path / 'bin/migration-report')
+        command([accept, '--integration', 'project_acceptance:integration', '--check'], downstream, check_env)
+        # Also exercise the installed default package-data paths without any DB.
+        command([python, '-c', 'from acceptance.integration import Integration, validate; from acceptance.workload import Workload; from acceptance.http_client import Application; validate(Integration(Application, Workload()))'], downstream, check_env)
+        runs = []
+        for candidate, status, verdict in [('rename-contact', 1, 'BLOCK'), ('contact-storage', 0, 'GO_WITHIN_SCOPE')]:
+            text = command([accept, '--integration', 'project_acceptance:integration', '--candidate', candidate,
+                            '--output', str(output)], downstream, runtime, expected=status)
+            report = json.loads(text.split('ACCEPTANCE_REPORT_BEGIN\n', 1)[1].split('\nACCEPTANCE_REPORT_END', 1)[0])
+            assert report['scenario'] == candidate and report['verdict'] == verdict
+            assert report['completed'] and report['cleanup_ok'] and len(report['checks']) == 16
+            passed = sum(c['status'] == 'PASS' for c in report['checks'])
+            assert passed == (8 if status else 16)
+            runs.append(dict(candidate=candidate, verdict=verdict, exit_code=status,
+                             run_id=report['run_id'], passed=passed, cleanup_ok=True))
+            print(f'Installed wheel: {candidate} => {verdict}; {passed}/16 PASS; cleanup verified')
+        command([review, str(output / 'contact-storage.json'), '--output', str(output / 'offline')], downstream, check_env)
+        assert (output / 'offline/contact-storage.html').is_file()
+        receipt = dict(wheel=wheel.name, wheel_sha256=wheel_sha, distribution_version='0.1.0',
+                       imports_from_installed_wheel=True, source_checkout_on_pythonpath=False,
+                       downstream_configuration_loaded=True, preflight_without_database=True,
+                       bundled_fixtures_verified=True, offline_render_without_database=True,
+                       runs=runs, independent_customer_validation=False)
+        (output / 'verification.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        print('Wheel contract verified from a separate generated project; this is a synthetic integration test.')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception:
+        raise SystemExit('Installed distribution verification failed; inspect the build/dependency setup and any saved report evidence. No release approval was issued.') from None
