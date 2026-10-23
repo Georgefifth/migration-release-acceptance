@@ -70,3 +70,9 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   construct an adapter, invoke an initializer/method or evaluate descriptors.
   Function-factory return objects and dynamic attributes remain runtime checks.
   Unknown candidates must fail in check mode as well as execution mode.
+
+- rollback_read must compare the exact latest acknowledged update, not truthiness.
+  Track a committed update even if the following paired read fails. Keep actual
+  and expected values out of evidence. verify_rollback must cover normal, stale,
+  corrupt, valid empty and failed-paired-read cases over real HTTP/PostgreSQL and
+  against the installed wheel; independently verify each owned schema is removed.

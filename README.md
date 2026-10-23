@@ -134,3 +134,8 @@ Passing fixture checks is not a general guarantee of migration safety.
 
 Original project code is MIT-licensed. Dependencies retain their own licenses;
 see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+Rollback value verification (v0.1.3) checks the latest acknowledged update after
+restarting v1. Stale or incorrect nonempty values fail, while a legitimate empty
+string passes. Earlier reports used a weaker nonempty check and must be rerun to
+establish this stronger guarantee. See [troubleshooting](docs/troubleshooting.md).

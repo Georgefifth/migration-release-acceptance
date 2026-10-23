@@ -26,7 +26,7 @@ source commit: the compatible candidate passes and the deliberately breaking
 candidate fails the job/pipeline with BLOCK. Preserve reports on failure and
 document the command for a project's existing CI without adding deployment.
 
-## Current iteration: catch integration mistakes before resource startup
+## Completed technical milestone: catch integration mistakes before resource startup
 
 Preflight binds inspectable factory/initializer/class-method signatures without
 invoking them, reports missing class protocol methods and rejects unsupported
@@ -35,6 +35,16 @@ wheel rejects invalid configuration without a database and still preserves real
 GO/BLOCK/INCONCLUSIVE runs from a separate generated project. Dynamic factories
 and descriptor behavior remain runtime checks. This is an early-error improvement,
 not evidence of measured onboarding savings.
+
+## Current iteration: verify rollback data rather than truthiness
+
+The rollback read must equal the latest acknowledged write for logical record 1,
+including a valid empty string. Track the write when update returns, even if the
+following paired read fails. Reproduce stale/corrupt nonempty responses and valid
+empty data over real HTTP/PostgreSQL, then run these cases against the installed
+wheel from an isolated downstream directory. Preserve the sixteen-probe contract
+and report bounded mismatches without actual/expected row values. Older reports
+retain their recorded weaker operation; rerun to obtain the stronger evidence.
 
 ## Next: independently reproducible project setup
 

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import socket
 import subprocess
 import tempfile
@@ -129,6 +130,16 @@ def integration():
             assert 'The disposable database connection failed.' in text
             assert 'postgresql://' not in text
             print('Installed wheel: unavailable database => INCONCLUSIVE/exit 2; bounded guidance verified')
+        # Copy only the reviewed synthetic HTTP mutation fixtures, not the
+        # acceptance source package. Their imports must use the installed wheel.
+        test_package = downstream / 'examples'
+        test_package.mkdir()
+        (test_package / '__init__.py').write_text('')
+        for fixture in ('verify_rollback.py', 'rollback_http_app.py'):
+            shutil.copyfile(ROOT / 'examples' / fixture, test_package / fixture)
+        command([python, '-m', 'examples.verify_rollback'], downstream, runtime)
+        shutil.copytree(downstream / 'reports/rollback-values', output / 'rollback-values', dirs_exist_ok=True)
+        print('Installed wheel: exact rollback values verified for normal, stale, corrupt, empty and failed-paired-read cases')
         command([review, str(output / 'contact-storage.json'), '--output', str(output / 'offline')], downstream, check_env)
         assert (output / 'offline/contact-storage.html').is_file()
         receipt = dict(wheel=wheel.name, wheel_sha256=wheel_sha, distribution_version=version,
@@ -137,6 +148,7 @@ def integration():
                        invalid_factory_and_checked_candidate_rejected=True,
                        bundled_fixtures_verified=True, offline_render_without_database=True,
                        unavailable_database_exit_2_and_guidance_verified=True,
+                       rollback_value_contract_verified=True,
                        runs=runs, independent_customer_validation=False)
         (output / 'verification.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print('Wheel contract verified from a separate generated project; this is a synthetic integration test.')

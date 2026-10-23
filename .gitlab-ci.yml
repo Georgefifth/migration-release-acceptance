@@ -61,6 +61,7 @@ adapter-contract:
   script:
     # Integration smoke tests, including partial-startup cleanup; not release approval.
     - python -m examples.verify_adapter
+    - python -m examples.verify_rollback
     - python -m examples.verify_failures
 
 package-contract:

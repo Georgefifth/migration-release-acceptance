@@ -195,12 +195,20 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             NEW.create(conn, 11, workload.new_write)
             equal(OLD.read(conn, 11), workload.new_write)
 
+        # Record only values whose update returned a committed success. A later
+        # paired read may fail, but that does not undo the acknowledged write.
+        rollback_expected = workload.initial
+
         def new_update_to_old():
+            nonlocal rollback_expected
             NEW.update(conn, 1, workload.new_update)
+            rollback_expected = workload.new_update
             equal(OLD.read(conn, 1), workload.new_update)
 
         def old_update_to_new():
+            nonlocal rollback_expected
             OLD.update(conn, 1, workload.old_update)
+            rollback_expected = workload.old_update
             equal(NEW.read(conn, 1), workload.old_update)
 
         check('old_to_new', 'mixed', 'v1 → v2', 'Old creates; new reads', old_to_new)
@@ -217,8 +225,8 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         if not check('rollback_restart', 'app_rollback', 'v1',
                      'Stop both apps; restart v1; verify new process identity', restart_old):
             return report
-        check('rollback_read', 'app_rollback', 'v1', 'Read pre-existing data after rollout',
-              lambda: equal(bool(OLD.read(conn, 1)), True))
+        check('rollback_read', 'app_rollback', 'v1', 'Read latest acknowledged value after rollout',
+              lambda: equal(OLD.read(conn, 1), rollback_expected))
         check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
               lambda: equal(OLD.read(conn, 2), workload.created))
         report['completed'] = True

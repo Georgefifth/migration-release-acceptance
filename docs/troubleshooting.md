@@ -89,3 +89,28 @@ and omit private injected exception text from JSON/Markdown/HTML. The fault harn
 repairs only its own deliberately retained test schema and independently queries
 for zero leftover test schemas. These are controlled technical regressions, not
 production incident or customer-support evidence.
+
+## Rollback reads must preserve the acknowledged value
+
+Since v0.1.3, rollback_read compares the restarted old application's response for
+logical ID 1 with the latest value whose update returned committed success.
+A nonempty stale/corrupt response is a compatibility failure; a legitimate empty
+string is not. The subsequent rollback_new_data check still verifies the record
+created by v2. Actual and expected values remain in memory and are not serialized.
+
+A write can succeed before its paired read fails. That write still sets the
+rollback expectation: a failed verification read does not undo committed data.
+This relies on the adapter contract that successful update means committed
+success, not a queued write or an uncommitted response.
+
+The controlled rollback-values regressions use real loopback HTTP processes and
+PostgreSQL for normal, stale, corrupt, empty and failed-paired-read cases. The
+harness independently checks removal of each exact owned schema. The package
+contract copies only these reviewed test fixtures into its separate generated
+project and runs them against the installed wheel, not the source acceptance
+package. These are synthetic correctness tests, not customer validation.
+
+Older reports are not upgraded by offline rendering. Their rollback operation
+used a weaker nonempty test; rerun acceptance to obtain exact-value evidence.
+The changed operation description prevents pairing old and new probe definitions
+as equivalent comparison evidence, even when other metadata matches.

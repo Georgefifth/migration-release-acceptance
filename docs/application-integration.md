@@ -21,7 +21,7 @@ python3 -m acceptance.project --integration examples.project_acceptance:integrat
 
 This checks the returned configuration, value types, baseline and declared SQL
 files without constructing adapters, launching apps or accessing a database.
-Version 0.1.2 also binds placeholder arguments to inspectable factory and
+Since v0.1.2, preflight also binds placeholder arguments to inspectable factory and
 initializer signatures. For class factories, it checks declared/inherited
 start, stop, read, create and update method signatures and rejects async methods
 that the synchronous runner cannot await. It never calls these operations.
@@ -144,7 +144,11 @@ failures, readiness errors and timeouts remain INCONCLUSIVE. Keep response bodie
 server error text, rows and connection strings out of reports and logs.
 
 The same sixteen checks cover baseline, migration, new/old requests, mixed
-creates/updates, restart and old reads of existing/new data. This supports one
+creates/updates, restart and old reads of existing/new data. Since v0.1.3 the
+restarted old app must return the latest acknowledged update for logical ID 1,
+including an empty string; returning any nonempty value is insufficient. An
+update that returns committed success sets that expectation even if a subsequent
+paired read fails. This supports one
 normalized string CRUD workflow, not arbitrary business journeys. Do not claim
 coverage for operations you did not map and execute.
 
