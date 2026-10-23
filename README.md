@@ -14,7 +14,22 @@ Renaming `customers.email` to `contact_email` passes migration execution and v2
 tests, but v1 code still queries `email`. During rollout or app rollback it fails.
 The alternative fixture retains both columns and synchronizes reads/writes.
 
-## Run locally (disposable PostgreSQL only)
+## First trial
+With Python 3.12+ and a running Docker installation, use a clean Git checkout and
+run one command from the repository root:
+
+```sh
+python3 -m acceptance.trial
+```
+
+This starts its own disposable PostgreSQL, runs both reference candidates, prints
+the report location, and removes the database container and temporary Python
+environment. It ignores any existing database connection setting. The first run
+downloads dependencies and a database image. No GitLab token is required.
+See [the first-trial guide](docs/first-trial.md) for the clone command, expected
+results, prerequisite checks, troubleshooting and cleanup after interruption.
+
+## Manual setup (disposable PostgreSQL only)
 Use Python 3.12+ and an empty PostgreSQL 16 test database. Never use a production
 database. The harness executes trusted repository SQL and creates/removes its own
 random schema. Schema isolation is not a sandbox for malicious SQL.

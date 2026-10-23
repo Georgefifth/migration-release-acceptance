@@ -1,15 +1,19 @@
 """Regression-test the harness using known unsafe and compatible fixtures."""
+import argparse
 import os
 from pathlib import Path
 from .report import write_reports
 from .runner import run
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, default=Path('reports'))
+    args = parser.parse_args(argv)
     dsn = os.environ['DATABASE_URL']
     for scenario, expected in [('breaking', 'BLOCK'), ('expand', 'GO_WITHIN_SCOPE')]:
         result = run(scenario, dsn)
-        write_reports(result, Path('reports'))
+        write_reports(result, args.output)
         if result['verdict'] != expected:
             raise AssertionError(f'{scenario}: expected {expected}, got {result["verdict"]}')
         applications = result['applications']

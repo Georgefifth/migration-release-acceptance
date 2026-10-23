@@ -44,6 +44,10 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
 - The report UI preserves recorded verdicts. Compare only matching, complete
   commit/workload/adapter/provenance/probe evidence; mismatches must remain explicit.
 - Escape all displayed evidence. Keep HTML reports offline with native controls.
+- First-trial setup must use its own labeled disposable Docker container, ignore
+  external database settings, remove owned anonymous volumes, and stop worker
+  process groups on interruption. Never claim cleanup when Docker is unavailable.
+- Bind local trial evidence to Git only for a clean checkout rooted here.
 - CI fixture self-tests and the selected-scenario release gate are separate jobs.
 - Report missing evidence honestly. Do not claim the hackathon integration works
   until an actual GitLab Duo session has completed.
