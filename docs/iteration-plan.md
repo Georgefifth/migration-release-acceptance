@@ -36,7 +36,7 @@ GO/BLOCK/INCONCLUSIVE runs from a separate generated project. Dynamic factories
 and descriptor behavior remain runtime checks. This is an early-error improvement,
 not evidence of measured onboarding savings.
 
-## Current iteration: verify rollback data rather than truthiness
+## Completed technical milestone: verify rollback data rather than truthiness
 
 The rollback read must equal the latest acknowledged write for logical record 1,
 including a valid empty string. Track the write when update returns, even if the
@@ -45,6 +45,14 @@ empty data over real HTTP/PostgreSQL, then run these cases against the installed
 wheel from an isolated downstream directory. Preserve the sixteen-probe contract
 and report bounded mismatches without actual/expected row values. Older reports
 retain their recorded weaker operation; rerun to obtain the stronger evidence.
+
+## Current iteration: synchronize and verify the actual demonstration
+
+Bind demo metadata, narration and product status to the v0.1.3 runtime snapshot.
+Record actual offline report interactions with English captions, hash inputs and
+video, inspect decoded frames and complete decoding, and retain a reproducible
+recording tool. Distinguish this local report clip from a live GitLab/Duo sequence
+and public YouTube submission. No current Duo review is implied by old notes.
 
 ## Next: independently reproducible project setup
 

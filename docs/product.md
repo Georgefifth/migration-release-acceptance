@@ -38,7 +38,7 @@ hypothesis is easier application-behavior acceptance, not novel migration logic.
 Do not copy Time-Traveler or claim isolated migration rehearsal is a new idea.
 
 ## Current limits
-Two trusted reference candidates per supported fixture workload, independent
+Reviewed named project candidates plus two reference fixtures, independent
 loopback HTTP application processes, and a reviewed application adapter boundary.
 A pinned public FastAPI integration is verified; it is not customer adoption.
 No arbitrary repository ingestion, application containers, concurrent load,
