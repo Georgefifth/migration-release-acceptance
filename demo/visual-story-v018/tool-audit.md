@@ -1,5 +1,7 @@
 # Recorder capability audit
 
+Audio follow-up: the initial 7.2.8 failure below is historical. An isolated official upgrade to edge-tts 7.3.1 successfully synthesized all 15 narration segments. The current voiced export is voiced-video/demo.mp4. See audio-followup.md for the actual environment and validation.
+
 Inspected only the user-authorized `/home/yap/tools/demo-recorder` tree and this
 project. No other local project was scanned. Reviewed all relevant implementation
 files, schema, design guidance, theme swatch, tools, plugin and smoke example.

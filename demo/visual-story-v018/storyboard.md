@@ -1,5 +1,7 @@
 # Directed visual storyboard
 
+Audio follow-up: the initial 7.2.8 failure below is historical. An isolated official upgrade to edge-tts 7.3.1 successfully synthesized all 15 narration segments. The current voiced export is voiced-video/demo.mp4. See audio-followup.md for the actual environment and validation.
+
 Target duration: approximately 2.5 to 3 minutes. English copy. Designed 16:9
 explanations alternate with authentic saved-report interaction. All numbers bind
 to v0.1.8 evidence in the manifest. Exact capture durations are in recorder logs.
