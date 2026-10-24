@@ -1,6 +1,6 @@
 {
-  "renderer_version": "0.1.4",
-  "renderer_sha256": "d735fb6366ce02399601381754d0e88fcb237666682fde3409febbf93edaeb53",
+  "renderer_version": "0.1.8",
+  "renderer_sha256": "76f55fb3fdcc38129f48c5e7b1967cd192bce26de25d8106061ec3f98f44f6f3",
   "sample_evidence_commit": "2ec32c7eb316c4f1cedf6e92a27b3e240de55c60",
   "static_only": true,
   "samples": [
@@ -27,19 +27,19 @@
   ],
   "files": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "index.html": "88102648367a725fff32ded9573a151f205ee8559bb5ca6c4d0d3a23177192b6",
-    "reports/breaking.html": "1368850c709a825a6dc919c23af415f05d815c084c44ded16b6d9f6be26afa66",
+    "index.html": "906fbbd54c50e1fc8ef0f27cae977ccbba4b366f98b5b33a2657fd87b6879066",
+    "reports/breaking.html": "e1cfde6a61ce869930c52d4b56e7ff3727fa47f156d0457c70950ef3cf6002fa",
     "reports/breaking.json": "0d51a02ad8d1cf74a1ebfc479ae623549ffa056bbf5ec526ef121570120c72d6",
-    "reports/breaking.md": "6003f359e10a5d2064c05d245a0193b6f7d9e71668fe7de1bed8757d5ab83f06",
-    "reports/comparison.html": "79ae51cb6d82788e2378c01e4239f1c9fc98ec83dfe7b33bbb5e1cf357b64346",
-    "reports/expand.html": "209ccc971da7796b326266b5699b74ae0d234e321b387a7116152e636ec68044",
+    "reports/breaking.md": "c3ed04aa505950b3a76071bd15cb23b96a378bc0f45c146652444079182dd78e",
+    "reports/comparison.html": "9304e9ac4fd77514837c624015e9c584c35b0c02c643e00ca2497118d477d262",
+    "reports/expand.html": "b2d8af6574ae6178527b19b9bfd5686fa3b48d98635f52a93172540d7b031de6",
     "reports/expand.json": "1d179737ee9241c4b6756092318d92fced7d1b0b6d3f286fc0d6fb07abcfb4cd",
-    "reports/expand.md": "b5ebed71396ac6f20bc79100ea86628cdd52f8b032437fb035ad847af6b66c58",
-    "reports/item-title-storage.html": "4e5721a0bab8a34f8565b0f5166a81af0c209dc71473a1ea0ae8e62b60443e02",
+    "reports/expand.md": "5ae0fdeb506975b2a28f80567408b1daeccc1cf140997a0d0fc2cdbcf9b9fab6",
+    "reports/item-title-storage.html": "48d7a7f3076633ea8c6bb19848cc4928df181b71442bd39d33f1d053c64d241d",
     "reports/item-title-storage.json": "9ba7f79aa332c5adc37be70093d87e54371104dcf37868842191e722d053d109",
-    "reports/item-title-storage.md": "d6c0c8f9f8fd97556b827c17e1c090b42e91395f29f99b040d2c8acc5cede906",
-    "reports/rename-title.html": "1c42870e2e3000cfb4afe40dfd479faff9bbdabe9a432d4ac4d31191e967e0ac",
+    "reports/item-title-storage.md": "686f8f53a0fd7ef7846907f0349aeeedcc489bec96eba0dbf3b0971aff9bd78f",
+    "reports/rename-title.html": "90e5c91bd37651208f204a97cd7042fdda53ab04b49283af4f21025e5ed8f26c",
     "reports/rename-title.json": "74611313f84ed3783dbc7761b791afd70215bc7074916b03240cb30b05efb572",
-    "reports/rename-title.md": "1cd27af6d67cb861092852bc2586e21caf6f7324ece9cdc69de41ecce2dd5b36"
+    "reports/rename-title.md": "74b6dc40512d96679f8ca8cb883ef50c2e908b96e61301f840b276b068e2f862"
   }
 }

@@ -10,6 +10,8 @@ Workload: fastapi-upstream-items
 
 Fixture SHA-256: `f0756ec4501273b505c305e3cac176228706c4ea1f5b82665ee3487a07d5a4af`
 
+Candidate transaction wrapper: enabled
+
 | Stage | App | Operation | Result | SQLSTATE |
 |---|---|---|---|---|
 | baseline | v1 | Start independent old HTTP application | PASS | — |
