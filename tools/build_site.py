@@ -54,7 +54,7 @@ migration-accept --integration project_acceptance:integration --candidate title-
     (output / 'index.html').write_text(page)
     (output / '.nojekyll').write_text('')
     renderer = ROOT / 'acceptance/report_ui.py'
-    identity = dict(renderer_version='0.1.6', renderer_sha256=hashlib.sha256(renderer.read_bytes()).hexdigest(),
+    identity = dict(renderer_version='0.1.7', renderer_sha256=hashlib.sha256(renderer.read_bytes()).hexdigest(),
                     sample_evidence_commit=manifest['evidence_commit'], static_only=True,
                     samples=[dict(candidate=r['scenario'], run_id=r['run_id'], verdict=r['verdict']) for r in reports],
                     files={str(p.relative_to(output)): hashlib.sha256(p.read_bytes()).hexdigest()

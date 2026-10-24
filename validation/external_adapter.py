@@ -43,6 +43,7 @@ def integration():
 def serve():
     from psycopg import sql
     from acceptance import http_app
+    from acceptance.adapters import RecordMissing
     _, data = configuration()
 
     class Repository:
@@ -55,7 +56,7 @@ def serve():
             row = conn.execute(sql.SQL('SELECT {} FROM {} WHERE {} = %s').format(
                 self.column, self.table, self.key), (key,)).fetchone()
             if row is None:
-                raise LookupError('Synthetic row absent')
+                raise RecordMissing()
             return None if row[0] is None else str(row[0])
 
         def create(self, conn, key, value):

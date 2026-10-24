@@ -116,6 +116,9 @@ def html_report(report):
     body += '<p class="muted">Recorded evidence for <strong>' + esc(scenario) + '</strong>. This result covers the declared probes and fixture.</p></div>'
     if report.get('coverage'):
         body += '<p class="muted"><strong>Coverage:</strong> one mapped string CRUD workflow. Unmapped fields, derived values and other business invariants are not checked.</p>'
+    role = report.get('database_role_capabilities', {})
+    if role.get('superuser') or role.get('bypass_rls'):
+        body += '<p class="muted"><strong>Role scope:</strong> the runner connection can bypass row-level security. Application-role RLS coverage needs separate evidence.</p>'
     body += f'<div class="facts"><span><strong>{passed}/{len(checks)}</strong> checks passed</span><span><strong>{len(failed)}</strong> failed</span><span><strong>{len(skipped)}</strong> skipped</span><span>Execution: <strong>{"complete" if report.get("completed") else "incomplete"}</strong></span><span>Cleanup: <strong>{"complete" if report.get("cleanup_ok") else "unconfirmed"}</strong></span></div>'
     # One native radio group filters by result OR execution phase. No script is
     # needed to expose passing setup/rollback probes from a failed-only view.
@@ -171,6 +174,8 @@ def html_report(report):
         if c.get('failure_kind'):
             classification = {'compatibility': 'Compatibility', 'infrastructure_or_unknown': 'Infrastructure or unknown', 'dependency': 'Not run'}.get(c['failure_kind'], c['failure_kind'])
             body += '<small class="classification">' + esc(classification) + '</small>'
+        if c.get('failure_reason') == 'record_missing':
+            body += '<small class="classification">Expected record unavailable</small>'
         body += '</td><td><code>' + esc(c.get('sqlstate') or '—') + '</code></td></tr>'
     body += '</tbody></table></div></fieldset>'
     body += '<details><summary>Run identity and source</summary><dl>'
@@ -185,7 +190,7 @@ def html_report(report):
     if report.get('error'):
         body += '<details open><summary>Execution details</summary><pre>' + esc(json.dumps(report['error'], indent=2)) + '</pre></details>'
     if report.get('error_context') or report.get('cleanup_evidence'):
-        evidence = {key: report[key] for key in ('error_context', 'cleanup_evidence') if key in report}
+        evidence = {key: report[key] for key in ('error_context', 'cleanup_evidence', 'database_role_capabilities') if key in report}
         body += '<details><summary>Failure context and cleanup evidence</summary><pre>' + esc(json.dumps(evidence, indent=2)) + '</pre></details>'
     body += '<h2 class="scope-heading">What this run covers</h2><ul class="limits">' + ''.join('<li>' + esc(v) + '</li>' for v in report.get('limitations', [])) + '</ul>'
     body += '<footer>A recorded GO_WITHIN_SCOPE is evidence for these probes. Merge and deployment remain human decisions.</footer>'

@@ -101,3 +101,9 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   known incompatibility permits BLOCK, never GO; unknown/lifecycle/cleanup errors
   and forged/orphaned skips remain INCONCLUSIVE. JSON v3, Markdown and HTML must
   preserve SKIP without counting it as a passed or failed executed request.
+- Known mapped-request enum/type representation (22P02), generated-always identity
+  (428C9) and privilege (42501) failures also block after successful lifecycle.
+  A generic 404 is unknown: only a reviewed record_missing semantic marker may
+  identify an expected absent record. Direct ApplicationError arguments must be
+  bounded and cannot preserve private text. Runner role booleans are not app-role
+  identity; low privilege alone does not establish owner RLS enforcement.

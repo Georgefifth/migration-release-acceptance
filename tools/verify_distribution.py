@@ -64,6 +64,8 @@ def main():
             assert any(name.endswith('.dist-info/licenses/LICENSE') for name in names)
             for name in ('baseline.sql', 'breaking.sql', 'expand.sql'):
                 (fixtures / name).write_bytes(archive.read('acceptance/fixtures/' + name))
+        (fixtures / 'missing.sql').write_text((fixtures / 'expand.sql').read_text()
+            + '\nCREATE RULE discard_created AS ON INSERT TO customers DO INSTEAD NOTHING;\n')
         environment = dict(os.environ)
         environment.pop('PYTHONPATH', None)
         environment.pop('PYTHONHOME', None)
@@ -88,7 +90,8 @@ def integration():
         workload=Workload(name="installed-wheel-reference", fixtures=ROOT / "fixtures",
                           provenance={"application": "bundled synthetic HTTP reference"}),
         candidates={"rename-contact": ROOT / "fixtures/breaking.sql",
-                    "contact-storage": ROOT / "fixtures/expand.sql"})
+                    "contact-storage": ROOT / "fixtures/expand.sql",
+                    "missing-record": ROOT / "fixtures/missing.sql"})
 ''')
         # Runtime apps inherit only test connection/identity variables, not CI tokens.
         runtime = {key: os.environ[key] for key in ('PATH', 'DATABASE_URL', 'ACCEPTANCE_DISPOSABLE_DB',
@@ -122,6 +125,16 @@ def integration():
             runs.append(dict(candidate=candidate, verdict=verdict, exit_code=status,
                              run_id=report['run_id'], passed=passed, cleanup_ok=True))
             print(f'Installed wheel: {candidate} => {verdict}; {passed}/16 PASS; cleanup verified')
+        text=command([accept,'--integration','project_acceptance:integration','--candidate','missing-record',
+                      '--output',str(output)],downstream,runtime,expected=1)
+        missing=json.loads(text.split('ACCEPTANCE_REPORT_BEGIN\n',1)[1].split('\nACCEPTANCE_REPORT_END',1)[0])
+        assert missing['completed'] and missing['cleanup_ok'] and missing['verdict']=='BLOCK'
+        assert any(c.get('failure_reason')=='record_missing' for c in missing['checks'])
+        new_write=next(c for c in missing['checks'] if c['id']=='new_write')
+        rollback=next(c for c in missing['checks'] if c['id']=='rollback_new_data')
+        assert new_write['write_acknowledged'] is True and rollback['status']=='FAIL'
+        command([review,str(output/'missing-record.json'),'--output',str(output/'offline-missing')],downstream,check_env)
+        print('Installed wheel: ignored insert => BLOCK; typed record_missing retained and real rollback read attempted')
         with socket.socket() as reserved:
             reserved.bind(('127.0.0.1', 0))
             unavailable = dict(runtime, DATABASE_URL=f'postgresql://acceptance:synthetic@127.0.0.1:{reserved.getsockname()[1]}/acceptance')
@@ -153,6 +166,7 @@ def integration():
                        bundled_fixtures_verified=True, offline_render_without_database=True,
                        unavailable_database_exit_2_and_guidance_verified=True,
                        rollback_value_contract_verified=True,
+                       missing_record_protocol_verified=True,
                        runs=runs, independent_customer_validation=False)
         (output / 'verification.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print('Wheel contract verified from a separate generated project; this is a synthetic integration test.')

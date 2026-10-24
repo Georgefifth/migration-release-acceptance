@@ -168,6 +168,20 @@ Reports now state prominently that unmapped fields, derived values and other
 business invariants are not checked. A warning does not implement those checks;
 this remains one reviewed normalized-string CRUD mapping.
 
+Since v0.1.7, a reviewed adapter may raise ApplicationError(reason='record_missing')
+only when it has confirmed absence of an expected logical record. The reference
+HTTP protocol recognizes 404 plus error=record_missing; ordinary 404/500 responses
+are not automatically migration defects. SQLSTATE is validated even for direct
+ApplicationError calls, and exception text is empty. Third-party API adapters
+must explicitly map their documented missing-record semantics; do not infer them
+from arbitrary response text. Permission/enum/identity errors are observed request
+failures, not proof of root cause or a security vulnerability.
+
+Runner-only role-capability metadata omits role names and cannot establish the
+application's DB identity. Superusers/BYPASSRLS and ordinary owners without FORCE
+can bypass row security; use representative application-role tests before making
+any RLS coverage claim.
+
 ## Verify through the public FastAPI integration
 
 After completing the pinned-source/dependency steps in

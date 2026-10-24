@@ -2,6 +2,10 @@
 from dataclasses import dataclass
 
 
+class RecordMissing(LookupError):
+    """An expected fixture record was explicitly observed to be absent."""
+
+
 @dataclass(frozen=True)
 class CustomerRepository:
     version: str
@@ -9,9 +13,12 @@ class CustomerRepository:
 
     def read(self, conn, customer_id):
         # column is an internal constant, never user input.
-        return conn.execute(
+        row = conn.execute(
             f'SELECT {self.column} FROM customers WHERE id = %s', (customer_id,)
-        ).fetchone()[0]
+        ).fetchone()
+        if row is None:
+            raise RecordMissing()
+        return row[0]
 
     def create(self, conn, customer_id, email):
         conn.execute(

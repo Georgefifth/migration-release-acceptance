@@ -23,7 +23,7 @@ CHECK_IDS = (
 # Application requests rejected by a migrated length or foreign-key constraint
 # are compatibility failures. Baseline/migration failures still remain
 # INCONCLUSIVE through verdict()'s lifecycle guard.
-COMPATIBILITY_STATES = {'42703', '42P01', '22001', '22003', '23502', '23503', '23505', '23514', 'P0001'}
+COMPATIBILITY_STATES = {'42703', '42P01', '22001', '22003', '22P02', '23502', '23503', '23505', '23514', '42501', '428C9', 'P0001'}
 
 
 def verdict(report):
@@ -142,9 +142,12 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
                 fn()
             item['status'] = 'PASS'
         except (psycopg.Error, ApplicationError) as exc:
+            reason = exc.reason if isinstance(exc,ApplicationError) else None
             item.update(status='FAIL', sqlstate=exc.sqlstate,
-                        failure_kind='compatibility' if exc.sqlstate in COMPATIBILITY_STATES
+                        failure_kind='compatibility' if exc.sqlstate in COMPATIBILITY_STATES or reason == 'record_missing'
                         else 'infrastructure_or_unknown')
+            if reason:
+                item['failure_reason'] = reason
         except AssertionError:
             item.update(status='FAIL', failure_kind='compatibility', sqlstate=None)
         except Exception:
@@ -170,6 +173,16 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         phase = 'schema_setup'
         conn.execute("SET statement_timeout = '5s'")
         conn.execute("SET lock_timeout = '2s'")
+        try:
+            role = conn.execute('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user').fetchone()
+            report['database_role_capabilities'] = dict(connection_scope='runner_only', available=role is not None)
+            if role is not None:
+                report['database_role_capabilities'].update(superuser=role[0],bypass_rls=role[1])
+                if any(role):
+                    report['limitations'].append('The runner connection can bypass row-level security. Application-role RLS coverage requires separate evidence.')
+        except psycopg.errors.InsufficientPrivilege:
+            report['database_role_capabilities'] = dict(connection_scope='runner_only',available=False)
+        report['limitations'].append('Runner role evidence does not identify application roles. Table owners can bypass RLS without FORCE ROW LEVEL SECURITY.')
         cleanup['schema_state'] = 'unconfirmed'
         conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(schema)))
         created = True

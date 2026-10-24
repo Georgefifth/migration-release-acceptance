@@ -49,7 +49,10 @@ def oracle(case, folder, dsn):
         conn.execute((folder / 'candidate.sql').read_text())
         phase = 'independent_probe'
         if case['oracle_sql']:
-            row = conn.execute(case['oracle_sql']).fetchone()
+            queries=case['oracle_sql'] if isinstance(case['oracle_sql'],list) else [case['oracle_sql']]
+            for query in queries:
+                cursor=conn.execute(query)
+            row = cursor.fetchone()
             result = None if row is None else row[0] is True
     except psycopg.Error as exc:
         state = exc.sqlstate
@@ -160,11 +163,14 @@ def main():
     parser.add_argument('--regression',action='store_true',help='Evaluate changed product code against preserved old inputs; not an untouched holdout')
     parser.add_argument('--core-checks',action='store_true',help='Run reviewed HTTP fault and lifecycle regression modules in this owned DB')
     parser.add_argument('--upstream-checks',action='store_true',help='Run the already prepared pinned upstream FastAPI public CLI cases')
+    parser.add_argument('--least-privilege',action='store_true',help='Use a NOSUPERUSER NOBYPASSRLS role in the owned test DB')
     args=parser.parse_args()
     OUT=args.corpus.resolve()
     frozen=OUT/'frozen.json'
     assert digest(frozen)==(OUT/'frozen.sha256').read_text().strip(), 'Frozen plan changed'
     plan=json.loads(frozen.read_text())
+    if plan.get('requires_least_privilege') and not args.least_privilege:
+        raise SystemExit('This corpus requires --least-privilege; admin would bypass RLS.')
     for name, expected in plan['input_sha256'].items():
         assert digest(OUT/name)==expected, 'Frozen input changed: '+name
     for name, expected in plan.get('runtime_sha256', {}).items():
@@ -203,6 +209,17 @@ def main():
                 time.sleep(.1)
         else:
             raise RuntimeError('Owned database did not become ready')
+        admin_dsn=dsn
+        if args.least_privilege:
+            with psycopg.connect(admin_dsn,autocommit=True) as conn:
+                conn.execute(sql.SQL('CREATE ROLE validation_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}').format(sql.Literal(password)))
+                conn.execute('GRANT CONNECT,CREATE,TEMP ON DATABASE validation TO validation_runtime')
+            dsn=f'postgresql://validation_runtime:{password}@127.0.0.1:{port}/validation'
+        def capabilities(connection_dsn):
+            with psycopg.connect(connection_dsn) as conn:
+                superuser,bypass=conn.execute('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user').fetchone()
+            return dict(superuser=superuser,bypass_rls=bypass)
+        environment['runtime_role_capabilities']=capabilities(dsn)
         environment['image_id']=subprocess.check_output(['docker','inspect','--format','{{.Image}}',name],text=True).strip()
         (destination/'environment.json').write_text(json.dumps(environment,indent=2)+'\n')
         for case in plan['cases']:
@@ -210,12 +227,14 @@ def main():
                 continue
             folder=OUT/'inputs'/case['id']
             caseout=destination/case['id']
-            ref=oracle(case,folder,dsn)
-            result=execute(case,folder,caseout,dsn,sut)
+            case_dsn=admin_dsn if case.get('database_role')=='superuser_control' else dsn
+            ref=oracle(case,folder,case_dsn)
+            result=execute(case,folder,caseout,case_dsn,sut)
             comp=benchmark(case,folder,caseout)
             row=dict(id=case['id'],difficulty=case['difficulty'],category=case['category'],
                      expected_verdict=case['expected_verdict'],oracle=ref,product=result,competitor=comp,
-                     out_of_scope_hazard=case.get('out_of_scope_hazard',False))
+                     out_of_scope_hazard=case.get('out_of_scope_hazard',False),
+                     database_role_capabilities=capabilities(case_dsn))
             rows.append(row)
             (destination/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
             print(case['id'],case['expected_verdict'],'=>',result['observed_verdict'],
@@ -254,7 +273,7 @@ def main():
             (destination/'wheel.stdout').write_text(contract.stdout)
             (destination/'wheel.stderr').write_text(contract.stderr)
             environment['installed_wheel_exit']=contract.returncode
-        with psycopg.connect(dsn) as conn:
+        with psycopg.connect(admin_dsn) as conn:
             environment['remaining_owned_schemas']=conn.execute("SELECT count(*) FROM pg_namespace WHERE nspname LIKE 'acceptance_%' OR nspname LIKE 'oracle_%'").fetchone()[0]
         environment['docker_stats']=subprocess.check_output(['docker','stats','--no-stream','--format',
             '{"memory":"{{.MemUsage}}","cpu":"{{.CPUPerc}}"}',name],text=True).strip()

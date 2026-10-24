@@ -18,6 +18,8 @@ def markdown(report):
     for c in report['checks']:
         lines.append(f"| {c['stage']} | {c['version']} | {c['operation']} | "
                      f"{c['status']} | {c.get('sqlstate') or '—'} |")
+        if c.get('failure_reason') == 'record_missing':
+            lines.append('| | | Expected record unavailable (record_missing). | | |')
         if c.get('status') == 'SKIP' and c.get('reason_code') == 'create_not_acknowledged':
             lines.append('| | | Not executed: new_write did not acknowledge a committed create. | | |')
     if report.get('coverage'):
@@ -33,6 +35,8 @@ def markdown(report):
         lines += ['- ' + action for action in issue['actions']]
     if report.get('cleanup_evidence'):
         lines += ['', 'Cleanup evidence: `' + json.dumps(report['cleanup_evidence'], sort_keys=True) + '`']
+    if report.get('database_role_capabilities'):
+        lines += ['', 'Runner-only role capabilities (not application role identity): `' + json.dumps(report['database_role_capabilities'],sort_keys=True) + '`']
     return '\n'.join(lines) + '\n'
 
 
