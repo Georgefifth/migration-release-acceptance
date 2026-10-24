@@ -20,7 +20,10 @@ CHECK_IDS = (
     'old_read', 'old_write', 'old_to_new', 'new_to_old',
     'new_update_to_old', 'old_update_to_new', 'rollback_restart', 'rollback_read', 'rollback_new_data',
 )
-COMPATIBILITY_STATES = {'42703', '42P01', '23502', '23505', '23514', 'P0001'}
+# Application requests rejected by a migrated length or foreign-key constraint
+# are compatibility failures. Baseline/migration failures still remain
+# INCONCLUSIVE through verdict()'s lifecycle guard.
+COMPATIBILITY_STATES = {'42703', '42P01', '22001', '23502', '23503', '23505', '23514', 'P0001'}
 
 
 def verdict(report):

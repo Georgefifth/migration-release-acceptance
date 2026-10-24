@@ -28,3 +28,15 @@ The wrapper supplies isolated configuration, readiness, baseline seeding, and
 sanitized SQLSTATE reporting. These changes are our integration code, not an
 upstream feature or claim of an upstream defect. Dependencies retain their own
 licenses and are installed from the upstream lockfile.
+
+## External validation excerpts
+
+The evaluator in validation/freeze_corpus.py includes attributed SQL test excerpts
+from sbdchd/squawk (MIT OR Apache-2.0) and postgres/postgres (PostgreSQL License).
+Their original license notices are retained in validation/licenses/. Exact source
+URLs, immutable Git tree revisions and file hashes are in validation/sources.json.
+The evaluator downloads pgroll examples (Apache-2.0) together with their license;
+no pgroll implementation is vendored or executed. Downloaded full source files
+remain in ignored reports/real-world-validation/sources/. Test baselines, data,
+HTTP mapping and independent SQL probes are our evaluation adaptations, not
+upstream application behavior or defects attributed to those projects.

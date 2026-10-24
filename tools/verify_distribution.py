@@ -39,6 +39,8 @@ def command(args, directory, environment, expected=0, timeout=180):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--wheel', type=Path, help='Specific reviewed wheel; default requires one wheel in dist/')
+    parser.add_argument('--output', type=Path, default=ROOT / 'reports/wheel-contract',
+                        help='Fresh evidence directory for this verification run')
     args = parser.parse_args()
     if not os.environ.get('DATABASE_URL') or os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         raise RuntimeError('A disposable database is required for the wheel contract test')
@@ -47,7 +49,9 @@ def main():
         raise RuntimeError('Build exactly one wheel in dist before verification')
     wheel = wheels[0]
     wheel_sha = hashlib.sha256(wheel.read_bytes()).hexdigest()
-    output = ROOT / 'reports/wheel-contract'
+    output = args.output.resolve()
+    if output.exists():
+        raise RuntimeError('Preserve previous wheel evidence; choose a fresh --output directory')
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='acceptance-downstream-') as temporary:
         stage = Path(temporary)

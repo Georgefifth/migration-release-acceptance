@@ -85,3 +85,12 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   source/report demonstration, not a hosted database or SQL executor. Publish
   only allowlisted synthetic evidence and source; exclude secrets, environments,
   raw traces and private data. Verify public build identity and local links.
+
+- External evaluation must freeze input hashes, expected verdicts and a holdout
+  split before execution. Keep labels/oracle probes outside product inputs.
+  Preserve original failed runs; regression reruns are not independent evidence.
+  External SQL plus our synthetic HTTP mapping is not an upstream business-app
+  integration. Never count an INCONCLUSIVE as detecting a known incompatibility.
+- SQLSTATE 22001 and 23503 during application requests are compatibility failures;
+  baseline, migration, incomplete execution and unknown errors remain guarded.
+  Do not turn arbitrary HTTP failures into BLOCK merely to improve benchmark scores.
