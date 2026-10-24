@@ -68,6 +68,12 @@ def troubleshooting(report):
             'The saved result does not establish compatibility.',
             'Inspect the declared operation evidence, restore the missing setup/execution step and rerun.')
 
+    if any(c.get('status') == 'SKIP' and c.get('reason_code') == 'create_not_acknowledged'
+           for c in checks if isinstance(c, dict)):
+        add('dependent_probe_skipped', 'A dependent rollback read was not executed.',
+            'The new-version create did not acknowledge a committed record. The skipped read is not passing rollback evidence.',
+            'Inspect new_write first, repair its failure and rerun to establish rollback reads of new data.')
+
     if not report.get('cleanup_ok'):
         cleanup = report.get('cleanup_evidence')
         cleanup = cleanup if isinstance(cleanup, dict) else {}

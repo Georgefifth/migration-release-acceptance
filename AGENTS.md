@@ -94,3 +94,10 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
 - SQLSTATE 22001 and 23503 during application requests are compatibility failures;
   baseline, migration, incomplete execution and unknown errors remain guarded.
   Do not turn arbitrary HTTP failures into BLOCK merely to improve benchmark scores.
+- SQLSTATE 22003 during mapped requests is also a compatibility failure. Track
+  new_write commit acknowledgement separately from its paired read. Only
+  rollback_new_data may SKIP when that create was not acknowledged; keep all 16
+  evidence rows, explicit dependency and reason. A valid dependency skip with a
+  known incompatibility permits BLOCK, never GO; unknown/lifecycle/cleanup errors
+  and forged/orphaned skips remain INCONCLUSIVE. JSON v3, Markdown and HTML must
+  preserve SKIP without counting it as a passed or failed executed request.

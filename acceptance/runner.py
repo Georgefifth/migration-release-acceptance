@@ -23,7 +23,7 @@ CHECK_IDS = (
 # Application requests rejected by a migrated length or foreign-key constraint
 # are compatibility failures. Baseline/migration failures still remain
 # INCONCLUSIVE through verdict()'s lifecycle guard.
-COMPATIBILITY_STATES = {'42703', '42P01', '22001', '23502', '23503', '23505', '23514', 'P0001'}
+COMPATIBILITY_STATES = {'42703', '42P01', '22001', '22003', '23502', '23503', '23505', '23514', 'P0001'}
 
 
 def verdict(report):
@@ -35,7 +35,19 @@ def verdict(report):
     if any(c['status'] != 'PASS' for c in checks
            if c['id'] in {'applications_started', 'new_application_started', 'baseline_read', 'baseline_write', 'migration', 'rollback_restart'}):
         return 'INCONCLUSIVE'
-    failures = [c for c in checks if c['status'] != 'PASS']
+    by_id = {c['id']: c for c in checks}
+    for c in checks:
+        if c['status'] == 'SKIP':
+            parent = by_id.get('new_write', {})
+            if (c['id'] != 'rollback_new_data' or c.get('depends_on') != 'new_write'
+                    or c.get('reason_code') != 'create_not_acknowledged'
+                    or c.get('failure_kind') != 'dependency'
+                    or parent.get('status') != 'FAIL'
+                    or parent.get('write_acknowledged') is not False):
+                return 'INCONCLUSIVE'
+        elif c['status'] not in {'PASS', 'FAIL'}:
+            return 'INCONCLUSIVE'
+    failures = [c for c in checks if c['status'] == 'FAIL']
     if any(c.get('failure_kind') != 'compatibility' for c in failures):
         return 'INCONCLUSIVE'
     return 'BLOCK' if failures else 'GO_WITHIN_SCOPE'
@@ -66,7 +78,7 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
     baseline = (workload.fixtures / 'baseline.sql').read_text()
     migration = (migration_path if migration_path is not None else workload.fixtures / f'{scenario}.sql').read_text()
     report = {
-        'schema_version': 2,
+        'schema_version': 3,
         'transport': 'HTTP',
         'workload': workload.name,
         'provenance': workload.provenance,
@@ -80,6 +92,9 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         'created_at': datetime.now(timezone.utc).isoformat(),
         'fixture_sha256': hashlib.sha256((baseline + '\n' + migration).encode()).hexdigest(),
         'checks': [], 'completed': False, 'cleanup_ok': False,
+        'coverage': {'workflow': 'One normalized string CRUD mapping',
+                     'operations': ['read', 'create', 'update'],
+                     'unmapped_business_invariants': 'not_checked'},
         'limitations': [
             f'Synthetic {workload.entity} records only; no production data or traffic.',
             workload.application_scope,
@@ -87,6 +102,7 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             'No lock-duration, large backfill, replication, or production deployment verification.',
             'Rollback means returning to v1 code on the migrated schema, not undoing SQL.',
             'GO applies only to this fixture and these declared probes.',
+            'Unmapped fields, derived values and other business invariants are not checked.',
         ],
     }
     schema = 'acceptance_' + uuid.uuid4().hex
@@ -183,8 +199,16 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             return report
         check('new_read', 'target', 'v2', 'Read migrated customer',
               lambda: equal(NEW.read(conn, 1), workload.initial))
-        check('new_write', 'target', 'v2', 'Create and read customer',
-              lambda: roundtrip(conn, NEW, 2, workload.created))
+        new_write_acknowledged = False
+
+        def create_new():
+            nonlocal new_write_acknowledged
+            NEW.create(conn, 2, workload.created)
+            new_write_acknowledged = True
+            equal(NEW.read(conn, 2), workload.created)
+
+        check('new_write', 'target', 'v2', 'Create and read customer', create_new)
+        report['checks'][-1]['write_acknowledged'] = new_write_acknowledged
         check('old_read', 'rollout', 'v1', 'Read migrated customer',
               lambda: equal(OLD.read(conn, 1), workload.initial))
         check('old_write', 'rollout', 'v1', 'Create and read customer',
@@ -230,8 +254,14 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             return report
         check('rollback_read', 'app_rollback', 'v1', 'Read latest acknowledged value after rollout',
               lambda: equal(OLD.read(conn, 1), rollback_expected))
-        check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
-              lambda: equal(OLD.read(conn, 2), workload.created))
+        if new_write_acknowledged:
+            check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
+                  lambda: equal(OLD.read(conn, 2), workload.created))
+        else:
+            report['checks'].append(dict(id='rollback_new_data', stage='app_rollback',
+                version='v1', operation='Read data committed by v2', status='SKIP',
+                failure_kind='dependency', depends_on='new_write',
+                reason_code='create_not_acknowledged', duration_ms=0))
         report['completed'] = True
     except psycopg.Error as exc:
         # Do not serialize exceptions: server messages can contain rows/credentials.

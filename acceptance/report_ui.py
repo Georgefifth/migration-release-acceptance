@@ -19,7 +19,7 @@ code,pre{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:12px;overfl
 .evidence-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:24px 0 8px}.evidence-toolbar h2{margin:0}.filters{display:flex;gap:4px;border:1px solid var(--line);border-radius:7px;padding:3px;background:var(--field)}.filters label{font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border-radius:4px;border:1px solid transparent}.filters label:hover{background:white}.view-note{font-size:13px;color:var(--muted);margin:6px 0 12px;display:none}
 #all-checks:checked~.evidence-toolbar label[for="all-checks"],#fail-only:checked~.evidence-toolbar label[for="fail-only"]{background:var(--paper);border-color:var(--line);color:var(--ink);font-weight:700}
 #all-checks:focus-visible~.evidence-toolbar label[for="all-checks"],#fail-only:focus-visible~.evidence-toolbar label[for="fail-only"]{outline:3px solid var(--link);outline-offset:3px}
-#all-checks:checked~.note-all,#fail-only:checked~.note-fail{display:block}#fail-only:checked~.table-shell tr[data-result="PASS"]{display:none}
+#all-checks:checked~.note-all,#fail-only:checked~.note-fail{display:block}#fail-only:checked~.table-shell tr[data-result]:not([data-result="FAIL"]){display:none}
 .table-shell{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden}table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left;font-size:14px}th{font-weight:600;background:var(--field);padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px}td{padding:15px 16px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}tr:last-child td{border-bottom:0}.evidence-table th:first-child{width:65%}.evidence-table th:nth-child(2){width:19%}.evidence-table th:nth-child(3){width:16%}.operation-name{font-weight:600;margin:0;line-height:1.45}.operation-meta{display:block;font-size:12px;color:var(--muted);margin-top:6px}.check-id{display:block;font-size:10px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}.classification{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:5px}.result{font-weight:700;font-size:12px}.result:before{content:'●';font-size:8px;margin-right:5px}.duration{font-size:11px;color:var(--muted)}td small{display:block}.empty-note{font-size:14px;padding:14px 16px;background:var(--field);border-radius:6px;margin-top:12px;display:none}#fail-only:checked~.empty-fail,#all-checks:checked~.empty-all{display:block}
 details{margin:16px 0;border:1px solid var(--line);border-radius:7px;background:white}summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;min-height:48px}details[open] summary{border-bottom:1px solid var(--line)}details dl,details pre,details h3{margin:16px}dl{display:grid;grid-template-columns:145px minmax(0,1fr);font-size:13px;gap:8px 18px}dt{color:var(--muted)}dd{margin:0;min-width:0}ul.limits{padding-left:20px;font-size:13px;max-width:80ch}ul.limits li{margin:7px 0}footer{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;font-size:12px;color:var(--muted)}.scope-heading{margin-top:30px}
 .pair{display:grid;grid-template-columns:1fr 1fr;margin:22px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}.pair article{padding:22px}.pair article+article{border-left:1px solid var(--line)}.pair .verdict{margin:0 0 12px}.pair h2{margin:0 0 12px;font-size:19px}.pair p{margin:8px 0;font-size:14px}.pair article>a{display:inline-flex;align-items:center;min-height:44px;margin-top:8px}.comparison th:first-child{width:58%}.comparison th:not(:first-child){width:21%}.comparison td small{color:var(--muted);font-size:11px;margin-top:5px}.comparison .result{font-size:12px}.comparison td{padding:13px 14px}.source-note{font-size:13px;color:var(--muted)}
@@ -96,7 +96,7 @@ def introduction(report):
     if report.get('verdict') == 'GO_WITHIN_SCOPE' and checks and not failures:
         return 'All declared application checks passed.'
     migration_passed = any(c.get('id') == 'migration' and c.get('status') == 'PASS' for c in checks)
-    old_failed = any(c.get('id') in {'old_read', 'old_write', 'rollback_read', 'rollback_new_data'} for c in failures)
+    old_failed = any(c.get('status') == 'FAIL' and c.get('id') in {'old_read', 'old_write', 'rollback_read', 'rollback_new_data'} for c in failures)
     if migration_passed and old_failed:
         return 'The migration passed. Old-version requests failed.'
     return 'Application compatibility checks failed.' if failures else 'Review the recorded acceptance evidence.'
@@ -104,8 +104,9 @@ def introduction(report):
 
 def html_report(report):
     checks = report.get('checks', [])
-    failed = [c for c in checks if c.get('status') != 'PASS']
-    passed = len(checks) - len(failed)
+    failed = [c for c in checks if c.get('status') == 'FAIL']
+    skipped = [c for c in checks if c.get('status') == 'SKIP']
+    passed = sum(c.get('status') == 'PASS' for c in checks)
     scenario = report['scenario']
     navigation = (f'<a href="{quote(str(scenario), safe="")}.json" download>JSON evidence</a>'
                   f'<a href="{quote(str(scenario), safe="")}.md" download>Markdown</a>'
@@ -113,7 +114,9 @@ def html_report(report):
     body = '<header><div><p><strong>Migration acceptance</strong></p><p class="muted">' + esc(report.get('workload', 'customer-reference')) + '<br>Commit <code title="' + esc(report['commit']) + '">' + esc(report['commit'][:12]) + '</code></p></div><nav aria-label="Report files">' + navigation + '</nav></header>'
     body += '<div class="hero">' + badge(report['verdict']) + '<h1>' + esc(introduction(report)) + '</h1>'
     body += '<p class="muted">Recorded evidence for <strong>' + esc(scenario) + '</strong>. This result covers the declared probes and fixture.</p></div>'
-    body += f'<div class="facts"><span><strong>{passed}/{len(checks)}</strong> checks passed</span><span><strong>{len(failed)}</strong> failed</span><span>Execution: <strong>{"complete" if report.get("completed") else "incomplete"}</strong></span><span>Cleanup: <strong>{"complete" if report.get("cleanup_ok") else "unconfirmed"}</strong></span></div>'
+    if report.get('coverage'):
+        body += '<p class="muted"><strong>Coverage:</strong> one mapped string CRUD workflow. Unmapped fields, derived values and other business invariants are not checked.</p>'
+    body += f'<div class="facts"><span><strong>{passed}/{len(checks)}</strong> checks passed</span><span><strong>{len(failed)}</strong> failed</span><span><strong>{len(skipped)}</strong> skipped</span><span>Execution: <strong>{"complete" if report.get("completed") else "incomplete"}</strong></span><span>Cleanup: <strong>{"complete" if report.get("cleanup_ok") else "unconfirmed"}</strong></span></div>'
     # One native radio group filters by result OR execution phase. No script is
     # needed to expose passing setup/rollback probes from a failed-only view.
     body += '<fieldset class="check-region"><legend class="sr-only">Filter operation evidence by result or execution phase</legend>'
@@ -125,9 +128,12 @@ def html_report(report):
     for number, (stage, label) in enumerate(STAGES, 1):
         group = [c for c in checks if c.get('stage') == stage]
         groups[stage] = group
-        bad = sum(c.get('status') != 'PASS' for c in group)
-        status = 'FAIL' if bad else 'PASS' if group else 'NOT RUN'
-        description = f'{bad} failed / {len(group)} checks' if bad else f'{len(group)} passed' if group else 'Not run'
+        bad = sum(c.get('status') == 'FAIL' for c in group)
+        not_run = sum(c.get('status') == 'SKIP' for c in group)
+        status = 'FAIL' if bad else 'SKIP' if not_run else 'PASS' if group else 'NOT RUN'
+        description = f'{bad} failed / {len(group)} checks' if bad else f'{len(group)-not_run} passed' if group else 'Not run'
+        if not_run:
+            description += f' / {not_run} skipped'
         body += f'<li class="{tone(status)}"><label for="stage-{stage}"><span class="stage-number" aria-hidden="true">{number}</span><b>{label}</b><small>{esc(description)}</small><span class="sr-only">Inspect {label} checks</span></label></li>'
     body += '</ol>'
     if report.get('verdict') == 'INCONCLUSIVE' or not report.get('completed') or not report.get('cleanup_ok'):
@@ -158,9 +164,12 @@ def html_report(report):
     labels = dict(STAGES)
     for c in checks:
         status = c.get('status', 'UNKNOWN')
-        body += f'<tr data-result="{esc(status)}" data-stage="{esc(c["stage"])}" id="check-{quote(c["id"], safe="")}"><td><p class="operation-name">{esc(c["operation"])}</p><span class="operation-meta">{esc(labels.get(c["stage"], c["stage"]))} / {esc(c["version"])}</span><small class="check-id">{esc(c["id"])}</small></td><td>' + result(status)
+        body += f'<tr data-result="{esc(status)}" data-stage="{esc(c["stage"])}" id="check-{quote(c["id"], safe="")}"><td><p class="operation-name">{esc(c["operation"])}</p><span class="operation-meta">{esc(labels.get(c["stage"], c["stage"]))} / {esc(c["version"])}</span><small class="check-id">{esc(c["id"])}</small>'
+        if status == 'SKIP' and c.get('reason_code') == 'create_not_acknowledged':
+            body += '<small class="operation-meta">Not executed: new_write did not acknowledge a committed create.</small>'
+        body += '</td><td>' + result(status)
         if c.get('failure_kind'):
-            classification = {'compatibility': 'Compatibility', 'infrastructure_or_unknown': 'Infrastructure or unknown'}.get(c['failure_kind'], c['failure_kind'])
+            classification = {'compatibility': 'Compatibility', 'infrastructure_or_unknown': 'Infrastructure or unknown', 'dependency': 'Not run'}.get(c['failure_kind'], c['failure_kind'])
             body += '<small class="classification">' + esc(classification) + '</small>'
         body += '</td><td><code>' + esc(c.get('sqlstate') or '—') + '</code></td></tr>'
     body += '</tbody></table></div></fieldset>'

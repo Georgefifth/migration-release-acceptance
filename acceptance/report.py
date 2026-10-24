@@ -18,6 +18,10 @@ def markdown(report):
     for c in report['checks']:
         lines.append(f"| {c['stage']} | {c['version']} | {c['operation']} | "
                      f"{c['status']} | {c.get('sqlstate') or '—'} |")
+        if c.get('status') == 'SKIP' and c.get('reason_code') == 'create_not_acknowledged':
+            lines.append('| | | Not executed: new_write did not acknowledge a committed create. | | |')
+    if report.get('coverage'):
+        lines += ['', 'Coverage: one mapped string CRUD workflow. Unmapped fields, derived values and other business invariants are not checked.']
     if report.get('provenance'):
         lines += ['', 'Upstream provenance: `' + json.dumps(report['provenance'], sort_keys=True) + '`']
     lines += ['', '## Scope and limitations', '']
@@ -72,8 +76,12 @@ def load_report(path):
         if not isinstance(check, dict) or any(not isinstance(check.get(key), str)
                 for key in ('id', 'stage', 'version', 'operation', 'status')):
             raise ValueError('Invalid operation evidence')
-        if check['status'] not in {'PASS', 'FAIL'}:
+        if check['status'] not in {'PASS', 'FAIL', 'SKIP'}:
             raise ValueError('Unsupported operation status')
+        if check['status'] == 'SKIP' and (check.get('depends_on') != 'new_write'
+                or check.get('reason_code') != 'create_not_acknowledged'
+                or check['id'] != 'rollback_new_data'):
+            raise ValueError('Invalid skipped-operation evidence')
         state = check.get('sqlstate')
         if state is not None and (not isinstance(state, str) or not re.fullmatch(r'[0-9A-Z]{5}', state)):
             raise ValueError('Invalid SQLSTATE evidence')

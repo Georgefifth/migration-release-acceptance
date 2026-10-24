@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import shutil
 import signal
 import subprocess
 import sys
@@ -121,7 +122,10 @@ def execute(case, folder, run_folder, dsn, sut):
                 steps=outputs, wall_seconds=round(time.monotonic()-started,3),
                 cleanup=cleanup, failed_checks=[] if report is None else [
                     {k:c.get(k) for k in ('id','sqlstate','failure_kind')}
-                    for c in report['checks'] if c['status']!='PASS'])
+                    for c in report['checks'] if c['status']=='FAIL'],
+                skipped_checks=[] if report is None else [
+                    {k:c.get(k) for k in ('id','status','depends_on','reason_code')}
+                    for c in report['checks'] if c['status']=='SKIP'])
 
 
 def benchmark(case, folder, destination):
@@ -153,6 +157,9 @@ def main():
     parser.add_argument('--label',required=True)
     parser.add_argument('--wheel',type=Path,help='Also verify an installed wheel in this owned DB')
     parser.add_argument('--corpus',type=Path,default=OUT,help='Separate frozen corpus directory; prior results stay unchanged')
+    parser.add_argument('--regression',action='store_true',help='Evaluate changed product code against preserved old inputs; not an untouched holdout')
+    parser.add_argument('--core-checks',action='store_true',help='Run reviewed HTTP fault and lifecycle regression modules in this owned DB')
+    parser.add_argument('--upstream-checks',action='store_true',help='Run the already prepared pinned upstream FastAPI public CLI cases')
     args=parser.parse_args()
     OUT=args.corpus.resolve()
     frozen=OUT/'frozen.json'
@@ -161,14 +168,15 @@ def main():
     for name, expected in plan['input_sha256'].items():
         assert digest(OUT/name)==expected, 'Frozen input changed: '+name
     for name, expected in plan.get('runtime_sha256', {}).items():
-        assert digest(ROOT/name)==expected, 'Frozen product runtime changed: '+name
+        if not args.regression:
+            assert digest(ROOT/name)==expected, 'Frozen product runtime changed: '+name
     destination=OUT/'runs'/args.label
     if destination.exists():
         raise SystemExit('Never overwrite initial results; choose a fresh run label.')
     destination.mkdir(parents=True)
     source_hashes={str(p.relative_to(ROOT)):digest(p) for p in sorted((ROOT/'acceptance').glob('*.py'))}
     sut='working-tree:'+hashlib.sha256(json.dumps(source_hashes,sort_keys=True).encode()).hexdigest()[:16]
-    environment=dict(python=sys.version, psycopg_version=psycopg.__version__, source_hashes=source_hashes,
+    environment=dict(python=sys.version, psycopg_version=psycopg.__version__, source_hashes=source_hashes, regression=args.regression,
                      adapter_sha256=digest(ROOT/'validation/external_adapter.py'),
                      plan_sha256=digest(frozen), sut=sut, split=args.split,
                      container_limits=dict(memory='512m',cpus=1,pids=128),
@@ -212,6 +220,31 @@ def main():
             (destination/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
             print(case['id'],case['expected_verdict'],'=>',result['observed_verdict'],
                   'oracle='+ref['status'],flush=True)
+        if args.core_checks:
+            core=destination/'core-checks';core.mkdir()
+            # Some fault adapters deliberately strip PYTHONPATH. Keep their
+            # exact reviewed test modules importable from the isolated cwd.
+            for package in ('acceptance','examples'):
+                shutil.copytree(ROOT/package,core/package,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+            test_env={k:os.environ[k] for k in ('PATH','HOME','LANG') if k in os.environ}
+            test_env.update(DATABASE_URL=dsn,ACCEPTANCE_DISPOSABLE_DB='yes',PYTHONPATH=str(ROOT))
+            environment['core_checks']={}
+            for module in ('acceptance.demo','examples.verify_adapter','examples.verify_rollback','examples.verify_failures','validation.verify_dependencies'):
+                result=subprocess.run([sys.executable,'-m',module],cwd=core,env=test_env,capture_output=True,text=True,timeout=180)
+                (core/(module+'.stdout')).write_text(result.stdout)
+                (core/(module+'.stderr')).write_text(result.stderr)
+                environment['core_checks'][module]=result.returncode
+        if args.upstream_checks:
+            app_python=ROOT/'.upstream/source/.venv/bin/python'
+            env={k:os.environ[k] for k in ('PATH','HOME','LANG') if k in os.environ}
+            env.update(DATABASE_URL=dsn,ACCEPTANCE_DISPOSABLE_DB='yes',PYTHONPATH=str(ROOT))
+            environment['upstream_checks']={}
+            for candidate in ('item-title-storage','rename-title'):
+                result=subprocess.run([str(app_python),'-m','acceptance.project','--integration','integrations.fastapi_case:integration',
+                    '--candidate',candidate,'--output',str(destination/'upstream')],cwd=ROOT,env=env,capture_output=True,text=True,timeout=180)
+                (destination/(candidate+'.stdout')).write_text(result.stdout)
+                (destination/(candidate+'.stderr')).write_text(result.stderr)
+                environment['upstream_checks'][candidate]=result.returncode
         if args.wheel:
             wheel_env={k:os.environ[k] for k in ('PATH','HOME','LANG') if k in os.environ}
             wheel_env.update(DATABASE_URL=dsn,ACCEPTANCE_DISPOSABLE_DB='yes')

@@ -152,6 +152,22 @@ paired read fails. This supports one
 normalized string CRUD workflow, not arbitrary business journeys. Do not claim
 coverage for operations you did not map and execute.
 
+Since v0.1.6, JSON schema version 3 records new_write.write_acknowledged separately
+from its paired read. If creation did not return committed success, the dependent
+rollback_new_data row is SKIP with depends_on=new_write and
+reason_code=create_not_acknowledged. It is not a passing rollback read and does
+not mean the server definitely did not commit. Unknown acknowledgement loss stays
+INCONCLUSIVE. A confirmed create followed by a failed paired read still requires
+the real rollback read. The other declared checks continue; known incompatibility
+plus this validated skip yields BLOCK, never GO. Baseline/migration/startup,
+unclassified errors and cleanup uncertainty retain INCONCLUSIVE. Existing schema
+version 2 reports remain readable. Legacy consumers must support the SKIP status
+before reading schema version 3 reports.
+
+Reports now state prominently that unmapped fields, derived values and other
+business invariants are not checked. A warning does not implement those checks;
+this remains one reviewed normalized-string CRUD mapping.
+
 ## Verify through the public FastAPI integration
 
 After completing the pinned-source/dependency steps in
