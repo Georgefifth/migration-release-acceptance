@@ -41,6 +41,7 @@ def execute(parser, args):
         print('Configuration, baseline SQL and declared candidate files are ready.')
         print('Inspectable factory, class-method and initializer call signatures checked without invocation.')
         print('Candidates: ' + ', '.join(candidate_paths(config)))
+        print('Candidate transaction wrapper: ' + ('enabled' if config.candidate_transactional else 'disabled (review single-statement SQL and partial effects)'))
         print('No application or database was started by this check. The configuration itself is trusted Python code.')
         print('Runtime startup, SQL correctness and compatibility still require an acceptance run.')
         return 0
@@ -49,7 +50,8 @@ def execute(parser, args):
         parser.exit(2, 'DATABASE_URL and ACCEPTANCE_DISPOSABLE_DB=yes are required for your disposable test database.\n')
     try:
         report = run(args.scenario, dsn, application_factory=config.application_factory,
-                     workload=config.workload, migration_path=candidate_paths(config)[args.scenario])
+                     workload=config.workload, migration_path=candidate_paths(config)[args.scenario],
+                     migration_transactional=config.candidate_transactional)
         write_reports(report, args.output)
     except Exception:
         parser.exit(2, 'Acceptance could not finish or save its evidence. Check the reviewed adapter, fixtures and output directory; no release approval was issued.\n')

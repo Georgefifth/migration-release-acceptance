@@ -179,7 +179,7 @@ def html_report(report):
         body += '</td><td><code>' + esc(c.get('sqlstate') or '—') + '</code></td></tr>'
     body += '</tbody></table></div></fieldset>'
     body += '<details><summary>Run identity and source</summary><dl>'
-    for label, value in [('Candidate', scenario), ('Commit', report['commit']), ('Run ID', report['run_id']), ('Created', report.get('created_at', 'unspecified')), ('Transport', report.get('transport', 'unspecified')), ('Fixture SHA-256', report['fixture_sha256'])]:
+    for label, value in [('Candidate', scenario), ('Commit', report['commit']), ('Run ID', report['run_id']), ('Created', report.get('created_at', 'unspecified')), ('Transport', report.get('transport', 'unspecified')), ('Fixture SHA-256', report['fixture_sha256']), ('Candidate transaction wrapper', 'enabled' if report.get('migration_transactional', True) else 'disabled')]:
         body += '<dt>' + esc(label) + '</dt><dd><code>' + esc(value) + '</code></dd>'
     if report.get('pipeline_url'):
         body += '<dt>Pipeline</dt><dd>' + link(report['pipeline_url'], 'Open CI pipeline') + '</dd>'
@@ -207,6 +207,11 @@ def comparison_gap(left, right):
             return 'Workload, adapter, transport or provenance identity is missing.'
     if left.get('commit') in {None, '', 'local-development'} or left.get('commit') != right.get('commit'):
         return 'The runs do not identify the same verified source commit.'
+    for report in (left, right):
+        if type(report.get('migration_transactional', True)) is not bool:
+            return 'Candidate execution mode is invalid.'
+    if left.get('migration_transactional', True) != right.get('migration_transactional', True):
+        return 'Candidate transaction wrappers differ between these runs.'
     for key in ('workload', 'application_factory', 'provenance', 'transport', 'postgres_version'):
         if left.get(key) != right.get(key):
             return 'The workload, adapter or upstream provenance differs between these runs.'

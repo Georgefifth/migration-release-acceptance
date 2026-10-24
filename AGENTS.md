@@ -107,3 +107,8 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   identify an expected absent record. Direct ApplicationError arguments must be
   bounded and cannot preserve private text. Runner role booleans are not app-role
   identity; low privilege alone does not establish owner RLS enforcement.
+- Candidate execution mode is an explicit reviewed boolean, default wrapped.
+  Never infer it from SQL text or split SQL. Only the candidate may omit its outer
+  transaction; baseline/probe/cleanup guards remain. Record mode in all report
+  formats and reject mode mismatches in comparisons. Concurrent DDL support is not
+  evidence for concurrent application load, production locks or generic migrations.

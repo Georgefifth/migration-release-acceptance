@@ -13,6 +13,7 @@ def markdown(report):
              f"Transport: {report.get('transport', 'unspecified')}", '',
              f"Workload: {report.get('workload', 'customer-reference')}", '',
              f"Fixture SHA-256: `{report['fixture_sha256']}`", '',
+             'Candidate transaction wrapper: ' + ('enabled' if report.get('migration_transactional', True) else 'disabled'), '',
              '| Stage | App | Operation | Result | SQLSTATE |',
              '|---|---|---|---|---|']
     for c in report['checks']:
@@ -74,6 +75,8 @@ def load_report(path):
     if not isinstance(report.get('limitations'), list) or not all(
             isinstance(item, str) for item in report['limitations']):
         raise ValueError('Scope limitations are required')
+    if type(report.get('migration_transactional', True)) is not bool:
+        raise ValueError('Invalid candidate execution mode')
     if not isinstance(report.get('checks'), list):
         raise ValueError('Expected operation evidence')
     for check in report['checks']:

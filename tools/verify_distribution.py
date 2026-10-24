@@ -66,6 +66,11 @@ def main():
                 (fixtures / name).write_bytes(archive.read('acceptance/fixtures/' + name))
         (fixtures / 'missing.sql').write_text((fixtures / 'expand.sql').read_text()
             + '\nCREATE RULE discard_created AS ON INSERT TO customers DO INSTEAD NOTHING;\n')
+        concurrent_fixtures = downstream / 'concurrent-fixtures'
+        concurrent_fixtures.mkdir()
+        (concurrent_fixtures / 'baseline.sql').write_text((fixtures / 'baseline.sql').read_text() + '\n' + (fixtures / 'expand.sql').read_text())
+        (concurrent_fixtures / 'candidate.sql').write_text('CREATE INDEX CONCURRENTLY contact_lookup ON customers(contact_email);\n')
+        (concurrent_fixtures / 'multi.sql').write_text('SELECT 1; CREATE INDEX CONCURRENTLY contact_lookup ON customers(contact_email);\n')
         environment = dict(os.environ)
         environment.pop('PYTHONPATH', None)
         environment.pop('PYTHONHOME', None)
@@ -93,6 +98,17 @@ def integration():
                     "contact-storage": ROOT / "fixtures/expand.sql",
                     "missing-record": ROOT / "fixtures/missing.sql"})
 ''')
+        with (downstream / 'project_acceptance.py').open('a') as stream:
+            stream.write("""
+def unwrapped():
+    return Integration(Application, Workload(fixtures=ROOT / 'concurrent-fixtures'),
+        candidates={'concurrent': ROOT / 'concurrent-fixtures/candidate.sql',
+                    'multi': ROOT / 'concurrent-fixtures/multi.sql'}, candidate_transactional=False)
+
+def wrapped():
+    return Integration(Application, Workload(fixtures=ROOT / 'concurrent-fixtures'),
+        candidates={'concurrent': ROOT / 'concurrent-fixtures/candidate.sql'})
+""")
         # Runtime apps inherit only test connection/identity variables, not CI tokens.
         runtime = {key: os.environ[key] for key in ('PATH', 'DATABASE_URL', 'ACCEPTANCE_DISPOSABLE_DB',
                                                    'CI_COMMIT_SHA', 'CI_PIPELINE_URL') if key in os.environ}
@@ -135,6 +151,21 @@ def integration():
         assert new_write['write_acknowledged'] is True and rollback['status']=='FAIL'
         command([review,str(output/'missing-record.json'),'--output',str(output/'offline-missing')],downstream,check_env)
         print('Installed wheel: ignored insert => BLOCK; typed record_missing retained and real rollback read attempted')
+        for config, candidate, expected in [('unwrapped','concurrent',0), ('wrapped','concurrent',2), ('unwrapped','multi',2)]:
+            mode_output=output/(config+'-'+candidate)
+            text=command([accept,'--integration','project_acceptance:'+config,'--candidate',candidate,
+                          '--output',str(mode_output)],downstream,runtime,expected=expected)
+            evidence=json.loads(text.split('ACCEPTANCE_REPORT_BEGIN\n',1)[1].split('\nACCEPTANCE_REPORT_END',1)[0])
+            assert evidence['migration_transactional'] is (config=='wrapped')
+            assert evidence['cleanup_ok']
+            migration=next(c for c in evidence['checks'] if c['id']=='migration')
+            if expected==0:
+                assert evidence['verdict']=='GO_WITHIN_SCOPE' and len(evidence['checks'])==16
+                assert all(c['status']=='PASS' for c in evidence['checks'])
+            else:
+                assert evidence['verdict']=='INCONCLUSIVE' and migration['sqlstate']=='25001'
+            command([review,str(mode_output/(candidate+'.json')),'--output',str(mode_output/'offline')],downstream,check_env)
+        print('Installed wheel: single concurrent DDL completes only with explicit no-wrapper mode; default and multi-statement transaction failures remain INCONCLUSIVE; cleanup verified')
         with socket.socket() as reserved:
             reserved.bind(('127.0.0.1', 0))
             unavailable = dict(runtime, DATABASE_URL=f'postgresql://acceptance:synthetic@127.0.0.1:{reserved.getsockname()[1]}/acceptance')

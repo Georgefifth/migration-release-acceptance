@@ -202,3 +202,20 @@ CI checks preflight, the named passing upstream candidate and both known-outcome
 integration cases. Adapter-contract also verifies cleanup after partial startup.
 Use your team's existing CI and disposable PostgreSQL service. A checked
 configuration is not deployment approval or a successful customer installation.
+
+### Explicit candidate transaction mode
+
+`Integration(..., candidate_transactional=False)` omits the runner's outer
+transaction **only for candidate SQL**. Default `True` preserves wrapped execution.
+Preflight rejects nonboolean values without constructing apps or accessing a DB.
+Use this reviewed option for a single `CREATE INDEX CONCURRENTLY` or `DROP INDEX
+CONCURRENTLY` statement. PostgreSQL disallows concurrent index creation inside a
+transaction: https://www.postgresql.org/docs/16/sql-createindex.html .
+
+This is not a per-statement migration engine: one multi-statement string may still
+run in an implicit transaction. No SQL splitting or automatic mode detection is
+performed. Trusted SQL may manage its own transactions. Without the wrapper,
+partial effects are not automatically reversed; errors remain INCONCLUSIVE and
+owned-schema/process cleanup still runs. Only disposable databases are supported.
+Reports record `migration_transactional`; comparisons reject differing modes.
+Historical reports without this field use the original wrapped mode.

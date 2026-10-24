@@ -37,7 +37,8 @@ def integration():
                           fixtures=path.parent, **data['values'],
                           provenance=data['provenance'],
                           application_scope='Synthetic reviewed HTTP mapping over external SQL, not an upstream business application.'),
-        candidates={data['id']: path.parent / 'candidate.sql'})
+        candidates={data['id']: path.parent / 'candidate.sql'},
+        candidate_transactional=data.get('candidate_transactional', True))
 
 
 def serve():

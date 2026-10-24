@@ -1,5 +1,6 @@
 """Run trusted reference fixtures against a disposable PostgreSQL database."""
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -64,10 +65,12 @@ def roundtrip(conn, adapter, customer_id, value='created@example.test'):
     equal(adapter.read(conn, customer_id), value)
 
 
-def run(scenario, dsn, application_factory=Application, workload=None, migration_path=None):
+def run(scenario, dsn, application_factory=Application, workload=None, migration_path=None, migration_transactional=True):
     import psycopg
     from psycopg import sql
 
+    if type(migration_transactional) is not bool:
+        raise ValueError('migration_transactional must be a boolean')
     if os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         raise ValueError('Set ACCEPTANCE_DISPOSABLE_DB=yes for a disposable test DB')
     if migration_path is None and scenario not in {'breaking', 'expand'}:
@@ -79,6 +82,7 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
     migration = (migration_path if migration_path is not None else workload.fixtures / f'{scenario}.sql').read_text()
     report = {
         'schema_version': 3,
+        'migration_transactional': migration_transactional,
         'transport': 'HTTP',
         'workload': workload.name,
         'provenance': workload.provenance,
@@ -105,6 +109,8 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             'Unmapped fields, derived values and other business invariants are not checked.',
         ],
     }
+    if not migration_transactional:
+        report['limitations'].append('Candidate SQL has no runner transaction wrapper. Multi-statement strings may still use an implicit transaction; partial effects are not automatically reversed.')
     schema = 'acceptance_' + uuid.uuid4().hex
     cleanup = dict(schema=schema, schema_state='not_requested',
                    applications_stopped=None, connection_closed=None)
@@ -132,13 +138,13 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         report['applications'].append(evidence)
         return evidence
 
-    def check(check_id, stage, version, operation, fn):
+    def check(check_id, stage, version, operation, fn, transactional=True):
         nonlocal phase, active_check
         phase, active_check = 'application_checks', check_id
         start = time.monotonic()
         item = dict(id=check_id, stage=stage, version=version, operation=operation.replace('customer', workload.entity))
         try:
-            with conn.transaction():
+            with conn.transaction() if transactional else nullcontext():
                 fn()
             item['status'] = 'PASS'
         except (psycopg.Error, ApplicationError) as exc:
@@ -205,7 +211,7 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
                      lambda: roundtrip(conn, OLD, 100, workload.created)):
             return report
         if not check('migration', 'migration', '-', 'Apply candidate SQL',
-                     lambda: conn.execute(migration)):
+                     lambda: conn.execute(migration), transactional=migration_transactional):
             return report
         if not check('new_application_started', 'target', 'v2', 'Start independent new HTTP application',
                      lambda: start_application(NEW, 'v2')):
