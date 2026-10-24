@@ -147,16 +147,21 @@ def benchmark(case, folder, destination):
 
 
 def main():
+    global OUT
     parser=argparse.ArgumentParser()
     parser.add_argument('--split',choices=['development','holdout'],required=True)
     parser.add_argument('--label',required=True)
     parser.add_argument('--wheel',type=Path,help='Also verify an installed wheel in this owned DB')
+    parser.add_argument('--corpus',type=Path,default=OUT,help='Separate frozen corpus directory; prior results stay unchanged')
     args=parser.parse_args()
+    OUT=args.corpus.resolve()
     frozen=OUT/'frozen.json'
     assert digest(frozen)==(OUT/'frozen.sha256').read_text().strip(), 'Frozen plan changed'
     plan=json.loads(frozen.read_text())
     for name, expected in plan['input_sha256'].items():
         assert digest(OUT/name)==expected, 'Frozen input changed: '+name
+    for name, expected in plan.get('runtime_sha256', {}).items():
+        assert digest(ROOT/name)==expected, 'Frozen product runtime changed: '+name
     destination=OUT/'runs'/args.label
     if destination.exists():
         raise SystemExit('Never overwrite initial results; choose a fresh run label.')

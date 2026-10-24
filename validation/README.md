@@ -55,3 +55,24 @@ The 2026-10-24 baseline used product v0.1.4/psycopg 3.2.9. Development fixes add
 The original corpus draft was reviewed and corrected before any execution; both
 the draft and amendment explanation are preserved in local evidence. No expected
 verdict was changed. No post-result corpus editing is permitted.
+
+## Second untouched batch
+
+The next 12 cases keep the v0.1.5 product runtime unchanged. They add domain,
+generated-column, default-removal, integer-range and multi-operation cases from
+other PostgreSQL regression excerpts. Use a separate corpus directory:
+
+```sh
+python3 -m validation.fetch_sources --round2
+python3 -m validation.freeze_round2
+reports/validation-env/bin/python -m validation.run_corpus --split holdout --label untouched-round2 --corpus reports/real-world-validation-round2
+python3 -m validation.summarize_round2
+```
+
+Source manifest: round2-sources.json. A repeat run requires a fresh --label and
+does not replace first-run evidence. Round two confirmed all references, matched
+9/12 verdicts and failed the same strict acceptance criterion. Two 22003 overflow
+cases and one failed-create/dependent-read case remain INCONCLUSIVE instead of
+BLOCK. One unmapped generated-field invariant also fails outside the declared
+mapped workflow. No product fix followed these results; this is challenge-set
+evidence, not another tuned regression run or an independent customer trial.
