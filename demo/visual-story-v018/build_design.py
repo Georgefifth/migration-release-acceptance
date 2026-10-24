@@ -128,6 +128,9 @@ arrow('report-point',1350,545,55,24,'fail','left')
 text('report-phase-note','Migration passed\nOld app failed',1400,720,430,115,30,'ink',True)
 foot('Actual saved report screenshot. Cropped for readability. Source and run identity are retained in the manifest.')
 
+order=['s01-overlap','s02-architecture-1','s02-architecture-2','s02-architecture-3','s03-probes','s09-report','s04-expand','s05-rollback','s07-decisions','s06-evidence','s08-scope']
+slides.sort(key=lambda slide:order.index(slide['id']))
+
 # Keep geometry editable and deterministic across SVG, HTML and native PPTX export.
 for slide in slides:
  for o in slide['objects']:
