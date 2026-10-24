@@ -9,6 +9,30 @@ from test_report_ui import run_report
 
 
 class OfflineReportTests(unittest.TestCase):
+    def test_dependency_skip_roundtrips_without_becoming_pass_or_failed_request(self):
+        from test_gate import GateTests
+        report = run_report('blocked-create')
+        report.update(GateTests().dependency_report(), verdict='BLOCK',
+                      coverage={'unmapped_business_invariants': 'not_checked'})
+        for check in report['checks']:
+            if check['id'].startswith('rollback_'):
+                check['stage'] = 'app_rollback'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'run.json').write_text(json.dumps(report))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main([str(root/'run.json'), '--output', str(root/'out')]), 0)
+            self.assertEqual(json.loads((root/'out/blocked-create.json').read_text()), report)
+            page = (root/'out/blocked-create.html').read_text()
+            self.assertIn('1</strong> skipped', page)
+            self.assertIn('1</strong> failed', page)
+            self.assertIn('2 passed / 1 skipped', page)
+            self.assertIn('data-result="SKIP"', page)
+            self.assertIn('did not acknowledge a committed create', page)
+            self.assertIn('Unmapped fields', page)
+            self.assertNotIn('Old-version requests failed', page)
+            self.assertIn('SKIP', (root/'out/blocked-create.md').read_text())
+
     def test_single_named_candidate_prints_its_actual_report(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

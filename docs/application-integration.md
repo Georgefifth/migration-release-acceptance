@@ -152,6 +152,36 @@ paired read fails. This supports one
 normalized string CRUD workflow, not arbitrary business journeys. Do not claim
 coverage for operations you did not map and execute.
 
+Since v0.1.6, JSON schema version 3 records new_write.write_acknowledged separately
+from its paired read. If creation did not return committed success, the dependent
+rollback_new_data row is SKIP with depends_on=new_write and
+reason_code=create_not_acknowledged. It is not a passing rollback read and does
+not mean the server definitely did not commit. Unknown acknowledgement loss stays
+INCONCLUSIVE. A confirmed create followed by a failed paired read still requires
+the real rollback read. The other declared checks continue; known incompatibility
+plus this validated skip yields BLOCK, never GO. Baseline/migration/startup,
+unclassified errors and cleanup uncertainty retain INCONCLUSIVE. Existing schema
+version 2 reports remain readable. Legacy consumers must support the SKIP status
+before reading schema version 3 reports.
+
+Reports now state prominently that unmapped fields, derived values and other
+business invariants are not checked. A warning does not implement those checks;
+this remains one reviewed normalized-string CRUD mapping.
+
+Since v0.1.7, a reviewed adapter may raise ApplicationError(reason='record_missing')
+only when it has confirmed absence of an expected logical record. The reference
+HTTP protocol recognizes 404 plus error=record_missing; ordinary 404/500 responses
+are not automatically migration defects. SQLSTATE is validated even for direct
+ApplicationError calls, and exception text is empty. Third-party API adapters
+must explicitly map their documented missing-record semantics; do not infer them
+from arbitrary response text. Permission/enum/identity errors are observed request
+failures, not proof of root cause or a security vulnerability.
+
+Runner-only role-capability metadata omits role names and cannot establish the
+application's DB identity. Superusers/BYPASSRLS and ordinary owners without FORCE
+can bypass row security; use representative application-role tests before making
+any RLS coverage claim.
+
 ## Verify through the public FastAPI integration
 
 After completing the pinned-source/dependency steps in
@@ -172,3 +202,20 @@ CI checks preflight, the named passing upstream candidate and both known-outcome
 integration cases. Adapter-contract also verifies cleanup after partial startup.
 Use your team's existing CI and disposable PostgreSQL service. A checked
 configuration is not deployment approval or a successful customer installation.
+
+### Explicit candidate transaction mode
+
+`Integration(..., candidate_transactional=False)` omits the runner's outer
+transaction **only for candidate SQL**. Default `True` preserves wrapped execution.
+Preflight rejects nonboolean values without constructing apps or accessing a DB.
+Use this reviewed option for a single `CREATE INDEX CONCURRENTLY` or `DROP INDEX
+CONCURRENTLY` statement. PostgreSQL disallows concurrent index creation inside a
+transaction: https://www.postgresql.org/docs/16/sql-createindex.html .
+
+This is not a per-statement migration engine: one multi-statement string may still
+run in an implicit transaction. No SQL splitting or automatic mode detection is
+performed. Trusted SQL may manage its own transactions. Without the wrapper,
+partial effects are not automatically reversed; errors remain INCONCLUSIVE and
+owned-schema/process cleanup still runs. Only disposable databases are supported.
+Reports record `migration_transactional`; comparisons reject differing modes.
+Historical reports without this field use the original wrapped mode.

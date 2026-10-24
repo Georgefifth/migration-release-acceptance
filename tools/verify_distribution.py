@@ -39,6 +39,8 @@ def command(args, directory, environment, expected=0, timeout=180):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--wheel', type=Path, help='Specific reviewed wheel; default requires one wheel in dist/')
+    parser.add_argument('--output', type=Path, default=ROOT / 'reports/wheel-contract',
+                        help='Fresh evidence directory for this verification run')
     args = parser.parse_args()
     if not os.environ.get('DATABASE_URL') or os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         raise RuntimeError('A disposable database is required for the wheel contract test')
@@ -47,7 +49,9 @@ def main():
         raise RuntimeError('Build exactly one wheel in dist before verification')
     wheel = wheels[0]
     wheel_sha = hashlib.sha256(wheel.read_bytes()).hexdigest()
-    output = ROOT / 'reports/wheel-contract'
+    output = args.output.resolve()
+    if output.exists():
+        raise RuntimeError('Preserve previous wheel evidence; choose a fresh --output directory')
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='acceptance-downstream-') as temporary:
         stage = Path(temporary)
@@ -60,6 +64,13 @@ def main():
             assert any(name.endswith('.dist-info/licenses/LICENSE') for name in names)
             for name in ('baseline.sql', 'breaking.sql', 'expand.sql'):
                 (fixtures / name).write_bytes(archive.read('acceptance/fixtures/' + name))
+        (fixtures / 'missing.sql').write_text((fixtures / 'expand.sql').read_text()
+            + '\nCREATE RULE discard_created AS ON INSERT TO customers DO INSTEAD NOTHING;\n')
+        concurrent_fixtures = downstream / 'concurrent-fixtures'
+        concurrent_fixtures.mkdir()
+        (concurrent_fixtures / 'baseline.sql').write_text((fixtures / 'baseline.sql').read_text() + '\n' + (fixtures / 'expand.sql').read_text())
+        (concurrent_fixtures / 'candidate.sql').write_text('CREATE INDEX CONCURRENTLY contact_lookup ON customers(contact_email);\n')
+        (concurrent_fixtures / 'multi.sql').write_text('SELECT 1; CREATE INDEX CONCURRENTLY contact_lookup ON customers(contact_email);\n')
         environment = dict(os.environ)
         environment.pop('PYTHONPATH', None)
         environment.pop('PYTHONHOME', None)
@@ -84,8 +95,20 @@ def integration():
         workload=Workload(name="installed-wheel-reference", fixtures=ROOT / "fixtures",
                           provenance={"application": "bundled synthetic HTTP reference"}),
         candidates={"rename-contact": ROOT / "fixtures/breaking.sql",
-                    "contact-storage": ROOT / "fixtures/expand.sql"})
+                    "contact-storage": ROOT / "fixtures/expand.sql",
+                    "missing-record": ROOT / "fixtures/missing.sql"})
 ''')
+        with (downstream / 'project_acceptance.py').open('a') as stream:
+            stream.write("""
+def unwrapped():
+    return Integration(Application, Workload(fixtures=ROOT / 'concurrent-fixtures'),
+        candidates={'concurrent': ROOT / 'concurrent-fixtures/candidate.sql',
+                    'multi': ROOT / 'concurrent-fixtures/multi.sql'}, candidate_transactional=False)
+
+def wrapped():
+    return Integration(Application, Workload(fixtures=ROOT / 'concurrent-fixtures'),
+        candidates={'concurrent': ROOT / 'concurrent-fixtures/candidate.sql'})
+""")
         # Runtime apps inherit only test connection/identity variables, not CI tokens.
         runtime = {key: os.environ[key] for key in ('PATH', 'DATABASE_URL', 'ACCEPTANCE_DISPOSABLE_DB',
                                                    'CI_COMMIT_SHA', 'CI_PIPELINE_URL') if key in os.environ}
@@ -118,6 +141,31 @@ def integration():
             runs.append(dict(candidate=candidate, verdict=verdict, exit_code=status,
                              run_id=report['run_id'], passed=passed, cleanup_ok=True))
             print(f'Installed wheel: {candidate} => {verdict}; {passed}/16 PASS; cleanup verified')
+        text=command([accept,'--integration','project_acceptance:integration','--candidate','missing-record',
+                      '--output',str(output)],downstream,runtime,expected=1)
+        missing=json.loads(text.split('ACCEPTANCE_REPORT_BEGIN\n',1)[1].split('\nACCEPTANCE_REPORT_END',1)[0])
+        assert missing['completed'] and missing['cleanup_ok'] and missing['verdict']=='BLOCK'
+        assert any(c.get('failure_reason')=='record_missing' for c in missing['checks'])
+        new_write=next(c for c in missing['checks'] if c['id']=='new_write')
+        rollback=next(c for c in missing['checks'] if c['id']=='rollback_new_data')
+        assert new_write['write_acknowledged'] is True and rollback['status']=='FAIL'
+        command([review,str(output/'missing-record.json'),'--output',str(output/'offline-missing')],downstream,check_env)
+        print('Installed wheel: ignored insert => BLOCK; typed record_missing retained and real rollback read attempted')
+        for config, candidate, expected in [('unwrapped','concurrent',0), ('wrapped','concurrent',2), ('unwrapped','multi',2)]:
+            mode_output=output/(config+'-'+candidate)
+            text=command([accept,'--integration','project_acceptance:'+config,'--candidate',candidate,
+                          '--output',str(mode_output)],downstream,runtime,expected=expected)
+            evidence=json.loads(text.split('ACCEPTANCE_REPORT_BEGIN\n',1)[1].split('\nACCEPTANCE_REPORT_END',1)[0])
+            assert evidence['migration_transactional'] is (config=='wrapped')
+            assert evidence['cleanup_ok']
+            migration=next(c for c in evidence['checks'] if c['id']=='migration')
+            if expected==0:
+                assert evidence['verdict']=='GO_WITHIN_SCOPE' and len(evidence['checks'])==16
+                assert all(c['status']=='PASS' for c in evidence['checks'])
+            else:
+                assert evidence['verdict']=='INCONCLUSIVE' and migration['sqlstate']=='25001'
+            command([review,str(mode_output/(candidate+'.json')),'--output',str(mode_output/'offline')],downstream,check_env)
+        print('Installed wheel: single concurrent DDL completes only with explicit no-wrapper mode; default and multi-statement transaction failures remain INCONCLUSIVE; cleanup verified')
         with socket.socket() as reserved:
             reserved.bind(('127.0.0.1', 0))
             unavailable = dict(runtime, DATABASE_URL=f'postgresql://acceptance:synthetic@127.0.0.1:{reserved.getsockname()[1]}/acceptance')
@@ -149,6 +197,7 @@ def integration():
                        bundled_fixtures_verified=True, offline_render_without_database=True,
                        unavailable_database_exit_2_and_guidance_verified=True,
                        rollback_value_contract_verified=True,
+                       missing_record_protocol_verified=True,
                        runs=runs, independent_customer_validation=False)
         (output / 'verification.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print('Wheel contract verified from a separate generated project; this is a synthetic integration test.')

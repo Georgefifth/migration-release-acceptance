@@ -19,6 +19,7 @@ class Integration:
     application_factory: Callable
     workload: Workload
     candidates: dict[str, Path] | None = None
+    candidate_transactional: bool = True
 
 
 def candidate_paths(config):
@@ -73,6 +74,8 @@ def validate(config):
     """Check declarations and readable fixtures, without constructing apps or a DB."""
     if not isinstance(config, Integration):
         raise ConfigurationError('The configuration function must return Integration(application_factory, workload).')
+    if type(config.candidate_transactional) is not bool:
+        raise ConfigurationError('candidate_transactional must be a boolean.')
     if not callable(config.application_factory):
         raise ConfigurationError('application_factory must be callable; do not launch applications during configuration.')
     check_factory(config.application_factory)

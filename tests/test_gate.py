@@ -13,6 +13,46 @@ def complete():
 
 
 class GateTests(unittest.TestCase):
+    def dependency_report(self):
+        report = complete()
+        report['checks'][CHECK_IDS.index('new_write')].update(
+            status='FAIL', failure_kind='compatibility', sqlstate='23505', write_acknowledged=False)
+        report['checks'][CHECK_IDS.index('rollback_new_data')].update(
+            status='SKIP', failure_kind='dependency', depends_on='new_write',
+            reason_code='create_not_acknowledged')
+        return report
+
+    def test_failed_create_preserves_block_with_a_valid_dependent_skip(self):
+        self.assertEqual(verdict(self.dependency_report()), 'BLOCK')
+
+    def test_dependency_skip_cannot_hide_unknown_request_or_cleanup_failure(self):
+        for mode in ('parent_unknown', 'other_unknown', 'cleanup'):
+            report = self.dependency_report()
+            if mode == 'parent_unknown':
+                report['checks'][CHECK_IDS.index('new_write')]['failure_kind'] = 'infrastructure_or_unknown'
+            elif mode == 'other_unknown':
+                report['checks'][CHECK_IDS.index('old_read')].update(status='FAIL', failure_kind='infrastructure_or_unknown')
+            else:
+                report['cleanup_ok'] = False
+            with self.subTest(mode=mode):
+                self.assertEqual(verdict(report), 'INCONCLUSIVE')
+
+    def test_forged_or_unrelated_skips_never_allow_go_or_block(self):
+        for mode in ('parent_pass', 'acknowledged', 'missing_ack', 'wrong_dependency', 'wrong_reason', 'wrong_kind', 'wrong_check'):
+            report = self.dependency_report()
+            parent = report['checks'][CHECK_IDS.index('new_write')]
+            skip = report['checks'][CHECK_IDS.index('rollback_new_data')]
+            if mode == 'parent_pass': parent['status'] = 'PASS'
+            elif mode == 'acknowledged': parent['write_acknowledged'] = True
+            elif mode == 'missing_ack': parent.pop('write_acknowledged')
+            elif mode == 'wrong_dependency': skip['depends_on'] = 'old_write'
+            elif mode == 'wrong_reason': skip['reason_code'] = 'anything'
+            elif mode == 'wrong_kind': skip['failure_kind'] = 'compatibility'
+            elif mode == 'wrong_check':
+                report['checks'][-2], report['checks'][-1] = skip, report['checks'][-2]
+                skip['id'], report['checks'][-1]['id'] = 'rollback_read', 'rollback_new_data'
+            with self.subTest(mode=mode): self.assertEqual(verdict(report), 'INCONCLUSIVE')
+
     def test_complete_evidence_only_allows_scoped_go(self):
         self.assertEqual(verdict(complete()), 'GO_WITHIN_SCOPE')
 

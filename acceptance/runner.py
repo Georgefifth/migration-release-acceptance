@@ -1,5 +1,6 @@
 """Run trusted reference fixtures against a disposable PostgreSQL database."""
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -20,7 +21,10 @@ CHECK_IDS = (
     'old_read', 'old_write', 'old_to_new', 'new_to_old',
     'new_update_to_old', 'old_update_to_new', 'rollback_restart', 'rollback_read', 'rollback_new_data',
 )
-COMPATIBILITY_STATES = {'42703', '42P01', '23502', '23505', '23514', 'P0001'}
+# Application requests rejected by a migrated length or foreign-key constraint
+# are compatibility failures. Baseline/migration failures still remain
+# INCONCLUSIVE through verdict()'s lifecycle guard.
+COMPATIBILITY_STATES = {'42703', '42P01', '22001', '22003', '22P02', '23502', '23503', '23505', '23514', '42501', '428C9', 'P0001'}
 
 
 def verdict(report):
@@ -32,7 +36,19 @@ def verdict(report):
     if any(c['status'] != 'PASS' for c in checks
            if c['id'] in {'applications_started', 'new_application_started', 'baseline_read', 'baseline_write', 'migration', 'rollback_restart'}):
         return 'INCONCLUSIVE'
-    failures = [c for c in checks if c['status'] != 'PASS']
+    by_id = {c['id']: c for c in checks}
+    for c in checks:
+        if c['status'] == 'SKIP':
+            parent = by_id.get('new_write', {})
+            if (c['id'] != 'rollback_new_data' or c.get('depends_on') != 'new_write'
+                    or c.get('reason_code') != 'create_not_acknowledged'
+                    or c.get('failure_kind') != 'dependency'
+                    or parent.get('status') != 'FAIL'
+                    or parent.get('write_acknowledged') is not False):
+                return 'INCONCLUSIVE'
+        elif c['status'] not in {'PASS', 'FAIL'}:
+            return 'INCONCLUSIVE'
+    failures = [c for c in checks if c['status'] == 'FAIL']
     if any(c.get('failure_kind') != 'compatibility' for c in failures):
         return 'INCONCLUSIVE'
     return 'BLOCK' if failures else 'GO_WITHIN_SCOPE'
@@ -49,10 +65,12 @@ def roundtrip(conn, adapter, customer_id, value='created@example.test'):
     equal(adapter.read(conn, customer_id), value)
 
 
-def run(scenario, dsn, application_factory=Application, workload=None, migration_path=None):
+def run(scenario, dsn, application_factory=Application, workload=None, migration_path=None, migration_transactional=True):
     import psycopg
     from psycopg import sql
 
+    if type(migration_transactional) is not bool:
+        raise ValueError('migration_transactional must be a boolean')
     if os.environ.get('ACCEPTANCE_DISPOSABLE_DB') != 'yes':
         raise ValueError('Set ACCEPTANCE_DISPOSABLE_DB=yes for a disposable test DB')
     if migration_path is None and scenario not in {'breaking', 'expand'}:
@@ -63,7 +81,8 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
     baseline = (workload.fixtures / 'baseline.sql').read_text()
     migration = (migration_path if migration_path is not None else workload.fixtures / f'{scenario}.sql').read_text()
     report = {
-        'schema_version': 2,
+        'schema_version': 3,
+        'migration_transactional': migration_transactional,
         'transport': 'HTTP',
         'workload': workload.name,
         'provenance': workload.provenance,
@@ -77,6 +96,9 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         'created_at': datetime.now(timezone.utc).isoformat(),
         'fixture_sha256': hashlib.sha256((baseline + '\n' + migration).encode()).hexdigest(),
         'checks': [], 'completed': False, 'cleanup_ok': False,
+        'coverage': {'workflow': 'One normalized string CRUD mapping',
+                     'operations': ['read', 'create', 'update'],
+                     'unmapped_business_invariants': 'not_checked'},
         'limitations': [
             f'Synthetic {workload.entity} records only; no production data or traffic.',
             workload.application_scope,
@@ -84,8 +106,11 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             'No lock-duration, large backfill, replication, or production deployment verification.',
             'Rollback means returning to v1 code on the migrated schema, not undoing SQL.',
             'GO applies only to this fixture and these declared probes.',
+            'Unmapped fields, derived values and other business invariants are not checked.',
         ],
     }
+    if not migration_transactional:
+        report['limitations'].append('Candidate SQL has no runner transaction wrapper. Multi-statement strings may still use an implicit transaction; partial effects are not automatically reversed.')
     schema = 'acceptance_' + uuid.uuid4().hex
     cleanup = dict(schema=schema, schema_state='not_requested',
                    applications_stopped=None, connection_closed=None)
@@ -113,19 +138,22 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         report['applications'].append(evidence)
         return evidence
 
-    def check(check_id, stage, version, operation, fn):
+    def check(check_id, stage, version, operation, fn, transactional=True):
         nonlocal phase, active_check
         phase, active_check = 'application_checks', check_id
         start = time.monotonic()
         item = dict(id=check_id, stage=stage, version=version, operation=operation.replace('customer', workload.entity))
         try:
-            with conn.transaction():
+            with conn.transaction() if transactional else nullcontext():
                 fn()
             item['status'] = 'PASS'
         except (psycopg.Error, ApplicationError) as exc:
+            reason = exc.reason if isinstance(exc,ApplicationError) else None
             item.update(status='FAIL', sqlstate=exc.sqlstate,
-                        failure_kind='compatibility' if exc.sqlstate in COMPATIBILITY_STATES
+                        failure_kind='compatibility' if exc.sqlstate in COMPATIBILITY_STATES or reason == 'record_missing'
                         else 'infrastructure_or_unknown')
+            if reason:
+                item['failure_reason'] = reason
         except AssertionError:
             item.update(status='FAIL', failure_kind='compatibility', sqlstate=None)
         except Exception:
@@ -151,6 +179,16 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
         phase = 'schema_setup'
         conn.execute("SET statement_timeout = '5s'")
         conn.execute("SET lock_timeout = '2s'")
+        try:
+            role = conn.execute('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user').fetchone()
+            report['database_role_capabilities'] = dict(connection_scope='runner_only', available=role is not None)
+            if role is not None:
+                report['database_role_capabilities'].update(superuser=role[0],bypass_rls=role[1])
+                if any(role):
+                    report['limitations'].append('The runner connection can bypass row-level security. Application-role RLS coverage requires separate evidence.')
+        except psycopg.errors.InsufficientPrivilege:
+            report['database_role_capabilities'] = dict(connection_scope='runner_only',available=False)
+        report['limitations'].append('Runner role evidence does not identify application roles. Table owners can bypass RLS without FORCE ROW LEVEL SECURITY.')
         cleanup['schema_state'] = 'unconfirmed'
         conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(schema)))
         created = True
@@ -173,15 +211,23 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
                      lambda: roundtrip(conn, OLD, 100, workload.created)):
             return report
         if not check('migration', 'migration', '-', 'Apply candidate SQL',
-                     lambda: conn.execute(migration)):
+                     lambda: conn.execute(migration), transactional=migration_transactional):
             return report
         if not check('new_application_started', 'target', 'v2', 'Start independent new HTTP application',
                      lambda: start_application(NEW, 'v2')):
             return report
         check('new_read', 'target', 'v2', 'Read migrated customer',
               lambda: equal(NEW.read(conn, 1), workload.initial))
-        check('new_write', 'target', 'v2', 'Create and read customer',
-              lambda: roundtrip(conn, NEW, 2, workload.created))
+        new_write_acknowledged = False
+
+        def create_new():
+            nonlocal new_write_acknowledged
+            NEW.create(conn, 2, workload.created)
+            new_write_acknowledged = True
+            equal(NEW.read(conn, 2), workload.created)
+
+        check('new_write', 'target', 'v2', 'Create and read customer', create_new)
+        report['checks'][-1]['write_acknowledged'] = new_write_acknowledged
         check('old_read', 'rollout', 'v1', 'Read migrated customer',
               lambda: equal(OLD.read(conn, 1), workload.initial))
         check('old_write', 'rollout', 'v1', 'Create and read customer',
@@ -227,8 +273,14 @@ def run(scenario, dsn, application_factory=Application, workload=None, migration
             return report
         check('rollback_read', 'app_rollback', 'v1', 'Read latest acknowledged value after rollout',
               lambda: equal(OLD.read(conn, 1), rollback_expected))
-        check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
-              lambda: equal(OLD.read(conn, 2), workload.created))
+        if new_write_acknowledged:
+            check('rollback_new_data', 'app_rollback', 'v1', 'Read data committed by v2',
+                  lambda: equal(OLD.read(conn, 2), workload.created))
+        else:
+            report['checks'].append(dict(id='rollback_new_data', stage='app_rollback',
+                version='v1', operation='Read data committed by v2', status='SKIP',
+                failure_kind='dependency', depends_on='new_write',
+                reason_code='create_not_acknowledged', duration_ms=0))
         report['completed'] = True
     except psycopg.Error as exc:
         # Do not serialize exceptions: server messages can contain rows/credentials.

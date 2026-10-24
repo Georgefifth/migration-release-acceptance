@@ -6,7 +6,7 @@ import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .adapters import OLD, NEW
+from .adapters import OLD, NEW, RecordMissing
 
 
 def main():
@@ -69,6 +69,8 @@ def main():
                 self.reply(500, {'error': 'database', 'sqlstate': exc.sqlstate})
             except (ValueError, KeyError, TypeError):
                 self.reply(400, {'error': 'invalid_request'})
+            except RecordMissing:
+                self.reply(404, {'error': 'record_missing'})
             except Exception:
                 self.reply(500, {'error': 'application'})
 

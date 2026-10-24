@@ -1,0 +1,42 @@
+[
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "src/test/regress/sql/domain.sql",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/src/test/regress/sql/domain.sql",
+    "downloaded_at": "2026-10-24T12:18:15.946308+00:00",
+    "sha256": "b836f10d12ef9addb43ab5e86b5ebed14c2614137fefd112efd34631f6e4bf9c",
+    "bytes": 23816,
+    "license": "PostgreSQL License"
+  },
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "src/test/regress/sql/numeric.sql",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/src/test/regress/sql/numeric.sql",
+    "downloaded_at": "2026-10-24T12:18:16.428892+00:00",
+    "sha256": "8dfb0dd51f3d987938900bd12f193888873c11348c85147a88e250ea23531801",
+    "bytes": 62541,
+    "license": "PostgreSQL License"
+  },
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "src/test/regress/sql/alter_table.sql",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/src/test/regress/sql/alter_table.sql",
+    "downloaded_at": "2026-10-24T12:18:17.149627+00:00",
+    "sha256": "533636646b7c25c191355309187da5edc8f9e7c17101ea70ba96317ffaa24774",
+    "bytes": 117285,
+    "license": "PostgreSQL License"
+  },
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "src/test/regress/sql/generated.sql",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/src/test/regress/sql/generated.sql",
+    "downloaded_at": "2026-10-24T12:18:59.319341+00:00",
+    "sha256": "f704b63cad068fb44a9d466f7e738bfd7208c3870eab3639b477aa81c612e19b",
+    "bytes": 25188,
+    "license": "PostgreSQL License"
+  }
+]

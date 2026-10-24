@@ -5,7 +5,7 @@ dependencies. Keep the application and its reviewed integration configuration in
 your own repository. A source checkout is not needed when running the installed
 project or offline-report commands.
 
-The provisional distribution name is migration-release-acceptance, version 0.1.4.
+The provisional distribution name is migration-release-acceptance, version 0.1.8.
 It is not published on PyPI. Do not install a similarly named registry package.
 
 ## Obtain the wheel
@@ -31,7 +31,7 @@ part of the wheel. The wheel contains the project's MIT license and notices.
 From your own project, with its test virtualenv active:
 
 ```sh
-python -m pip install /path/to/migration_release_acceptance-0.1.4-py3-none-any.whl
+python -m pip install /path/to/migration_release_acceptance-0.1.8-py3-none-any.whl
 migration-accept --help
 ```
 

@@ -1,0 +1,155 @@
+[
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/LICENSE-MIT",
+    "downloaded_at": "2026-10-24T12:04:46.709472+00:00",
+    "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "bytes": 1023
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/LICENSE-APACHE",
+    "downloaded_at": "2026-10-24T12:04:49.242910+00:00",
+    "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+    "bytes": 10847
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "crates/squawk_linter/src/rules/renaming_column.rs",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/crates/squawk_linter/src/rules/renaming_column.rs",
+    "downloaded_at": "2026-10-24T12:04:49.754579+00:00",
+    "sha256": "6b16b2f93bf3d6d0e3fb01fdb69b7fd314b230626f1ac54c5864d23d05e38f19",
+    "bytes": 3443
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "crates/squawk_linter/src/rules/ban_drop_column.rs",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/crates/squawk_linter/src/rules/ban_drop_column.rs",
+    "downloaded_at": "2026-10-24T12:04:50.197840+00:00",
+    "sha256": "f58394456da95092932b0742c4092c8965cb6c95103ab32c059f2e187e66c56d",
+    "bytes": 2098
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "crates/squawk_linter/src/rules/changing_column_type.rs",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/crates/squawk_linter/src/rules/changing_column_type.rs",
+    "downloaded_at": "2026-10-24T12:04:50.647801+00:00",
+    "sha256": "9fd483e4f919fea5adbcb56908a880736576f8a768b6d17db505637ac412459b",
+    "bytes": 2891
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "crates/squawk_linter/src/rules/adding_field_with_default.rs",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/crates/squawk_linter/src/rules/adding_field_with_default.rs",
+    "downloaded_at": "2026-10-24T12:04:51.066231+00:00",
+    "sha256": "8df44133ec9be1d80914b5a1ede84883b098082103e70cfa544427768527c758",
+    "bytes": 9815
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "crates/squawk_linter/src/rules/constraint_missing_not_valid.rs",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/crates/squawk_linter/src/rules/constraint_missing_not_valid.rs",
+    "downloaded_at": "2026-10-24T12:04:51.495923+00:00",
+    "sha256": "e5597ae0196c32acbfa6f1b5bd87e99d1ecfedfc56bf2887d4b02ef7a3ec6a56",
+    "bytes": 17471
+  },
+  {
+    "repository": "sbdchd/squawk",
+    "revision": "b277adbbd4b0072e4d45f7809c825a1ea46ef917",
+    "path": "crates/squawk_linter/src/rules/disallow_unique_constraint.rs",
+    "url": "https://raw.githubusercontent.com/sbdchd/squawk/b277adbbd4b0072e4d45f7809c825a1ea46ef917/crates/squawk_linter/src/rules/disallow_unique_constraint.rs",
+    "downloaded_at": "2026-10-24T12:04:51.921104+00:00",
+    "sha256": "39103f015c1d863b46c0cf52c6a8cabfde34af546b07fe900ae7d6f59d33e98d",
+    "bytes": 7196
+  },
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "COPYRIGHT",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/COPYRIGHT",
+    "downloaded_at": "2026-10-24T12:04:52.353823+00:00",
+    "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+    "bytes": 1198
+  },
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "src/test/regress/sql/alter_table.sql",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/src/test/regress/sql/alter_table.sql",
+    "downloaded_at": "2026-10-24T12:04:52.837623+00:00",
+    "sha256": "533636646b7c25c191355309187da5edc8f9e7c17101ea70ba96317ffaa24774",
+    "bytes": 117285
+  },
+  {
+    "repository": "postgres/postgres",
+    "revision": "774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b",
+    "path": "src/test/regress/expected/alter_table.out",
+    "url": "https://raw.githubusercontent.com/postgres/postgres/774c47de1b3bfdd022c0ba9ec0ed77c0d62c805b/src/test/regress/expected/alter_table.out",
+    "downloaded_at": "2026-10-24T12:04:53.362997+00:00",
+    "sha256": "15b470f2dfdada10fc7afc80001c7125a6e7f4c24262ffb2c03ba34084e97e2e",
+    "bytes": 202435
+  },
+  {
+    "repository": "xataio/pgroll",
+    "revision": "777a5350e09012b29d26b9611122046d8a96fc1c",
+    "path": "LICENSE",
+    "url": "https://raw.githubusercontent.com/xataio/pgroll/777a5350e09012b29d26b9611122046d8a96fc1c/LICENSE",
+    "downloaded_at": "2026-10-24T12:04:53.827783+00:00",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "bytes": 11357
+  },
+  {
+    "repository": "xataio/pgroll",
+    "revision": "777a5350e09012b29d26b9611122046d8a96fc1c",
+    "path": "examples/03_add_column.yaml",
+    "url": "https://raw.githubusercontent.com/xataio/pgroll/777a5350e09012b29d26b9611122046d8a96fc1c/examples/03_add_column.yaml",
+    "downloaded_at": "2026-10-24T12:04:54.228043+00:00",
+    "sha256": "f16bd7949fdd48055f4341f71f453a10458fc2e62976af79dc88a93205b9e3bf",
+    "bytes": 455
+  },
+  {
+    "repository": "xataio/pgroll",
+    "revision": "777a5350e09012b29d26b9611122046d8a96fc1c",
+    "path": "examples/09_drop_column.yaml",
+    "url": "https://raw.githubusercontent.com/xataio/pgroll/777a5350e09012b29d26b9611122046d8a96fc1c/examples/09_drop_column.yaml",
+    "downloaded_at": "2026-10-24T12:04:54.647113+00:00",
+    "sha256": "db09ca65b2ef5cf8f577b2b5780727673f27d2a4d67082b919f7f05a35760822",
+    "bytes": 85
+  },
+  {
+    "repository": "xataio/pgroll",
+    "revision": "777a5350e09012b29d26b9611122046d8a96fc1c",
+    "path": "examples/13_rename_column.yaml",
+    "url": "https://raw.githubusercontent.com/xataio/pgroll/777a5350e09012b29d26b9611122046d8a96fc1c/examples/13_rename_column.yaml",
+    "downloaded_at": "2026-10-24T12:04:55.058784+00:00",
+    "sha256": "a209eabd14fa85d3879aaa1901ce70132095e63583f581e7fac09e02342fb1f9",
+    "bytes": 91
+  },
+  {
+    "repository": "xataio/pgroll",
+    "revision": "777a5350e09012b29d26b9611122046d8a96fc1c",
+    "path": "examples/18_change_column_type.yaml",
+    "url": "https://raw.githubusercontent.com/xataio/pgroll/777a5350e09012b29d26b9611122046d8a96fc1c/examples/18_change_column_type.yaml",
+    "downloaded_at": "2026-10-24T12:04:55.471758+00:00",
+    "sha256": "09db4395cd8b11495ee609a6e63e0a899b078e4b03f4ad533b47d9c6da3a9e31",
+    "bytes": 159
+  },
+  {
+    "repository": "xataio/pgroll",
+    "revision": "777a5350e09012b29d26b9611122046d8a96fc1c",
+    "path": "pkg/migrations/op_alter_column_test.go",
+    "url": "https://raw.githubusercontent.com/xataio/pgroll/777a5350e09012b29d26b9611122046d8a96fc1c/pkg/migrations/op_alter_column_test.go",
+    "downloaded_at": "2026-10-24T12:04:55.980429+00:00",
+    "sha256": "d152ed51912b6e6d824bb3e94a46b96205176d270f7eebaa3b7380310d596cb5",
+    "bytes": 27893
+  }
+]

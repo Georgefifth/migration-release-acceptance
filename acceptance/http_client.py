@@ -1,6 +1,7 @@
 """Own fixture process lifetimes and send real loopback HTTP requests."""
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -11,8 +12,10 @@ from urllib.request import Request, ProxyHandler, build_opener
 
 
 class ApplicationError(Exception):
-    def __init__(self, sqlstate=None):
-        self.sqlstate = sqlstate
+    def __init__(self, sqlstate=None, reason=None):
+        self.sqlstate = sqlstate if isinstance(sqlstate,str) and re.fullmatch(r'[0-9A-Z]{5}',sqlstate) else None
+        self.reason = reason if reason == 'record_missing' else None
+        super().__init__()  # Never preserve unvalidated arguments as exception text.
 
 
 class Application:
@@ -72,14 +75,15 @@ class Application:
             with self.opener.open(request, timeout=10) as response:
                 return json.load(response)
         except HTTPError as exc:
-            # Only a validated SQLSTATE crosses into the evidence report.
+            # Only a validated SQLSTATE or exact reviewed protocol marker crosses
+            # into evidence. A generic HTTP 404 does not identify a missing row.
             try:
-                state = json.load(exc).get('sqlstate')
+                body = json.load(exc)
+                state = body.get('sqlstate')
+                reason = 'record_missing' if exc.code == 404 and body.get('error') == 'record_missing' else None
             except (ValueError, AttributeError):
-                state = None
-            if not isinstance(state, str) or len(state) != 5 or not state.isalnum():
-                state = None
-            raise ApplicationError(state) from None
+                state,reason = None,None
+            raise ApplicationError(state,reason=reason) from None
 
     def read(self, _conn, customer_id):
         return self.request('GET', f'/customers/{customer_id}')['email']

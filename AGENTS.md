@@ -85,3 +85,30 @@ Mixed-version probes are sequential interleavings, not concurrent load tests.
   source/report demonstration, not a hosted database or SQL executor. Publish
   only allowlisted synthetic evidence and source; exclude secrets, environments,
   raw traces and private data. Verify public build identity and local links.
+
+- External evaluation must freeze input hashes, expected verdicts and a holdout
+  split before execution. Keep labels/oracle probes outside product inputs.
+  Preserve original failed runs; regression reruns are not independent evidence.
+  External SQL plus our synthetic HTTP mapping is not an upstream business-app
+  integration. Never count an INCONCLUSIVE as detecting a known incompatibility.
+- SQLSTATE 22001 and 23503 during application requests are compatibility failures;
+  baseline, migration, incomplete execution and unknown errors remain guarded.
+  Do not turn arbitrary HTTP failures into BLOCK merely to improve benchmark scores.
+- SQLSTATE 22003 during mapped requests is also a compatibility failure. Track
+  new_write commit acknowledgement separately from its paired read. Only
+  rollback_new_data may SKIP when that create was not acknowledged; keep all 16
+  evidence rows, explicit dependency and reason. A valid dependency skip with a
+  known incompatibility permits BLOCK, never GO; unknown/lifecycle/cleanup errors
+  and forged/orphaned skips remain INCONCLUSIVE. JSON v3, Markdown and HTML must
+  preserve SKIP without counting it as a passed or failed executed request.
+- Known mapped-request enum/type representation (22P02), generated-always identity
+  (428C9) and privilege (42501) failures also block after successful lifecycle.
+  A generic 404 is unknown: only a reviewed record_missing semantic marker may
+  identify an expected absent record. Direct ApplicationError arguments must be
+  bounded and cannot preserve private text. Runner role booleans are not app-role
+  identity; low privilege alone does not establish owner RLS enforcement.
+- Candidate execution mode is an explicit reviewed boolean, default wrapped.
+  Never infer it from SQL text or split SQL. Only the candidate may omit its outer
+  transaction; baseline/probe/cleanup guards remain. Record mode in all report
+  formats and reject mode mismatches in comparisons. Concurrent DDL support is not
+  evidence for concurrent application load, production locks or generic migrations.

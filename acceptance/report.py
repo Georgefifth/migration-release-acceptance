@@ -13,11 +13,18 @@ def markdown(report):
              f"Transport: {report.get('transport', 'unspecified')}", '',
              f"Workload: {report.get('workload', 'customer-reference')}", '',
              f"Fixture SHA-256: `{report['fixture_sha256']}`", '',
+             'Candidate transaction wrapper: ' + ('enabled' if report.get('migration_transactional', True) else 'disabled'), '',
              '| Stage | App | Operation | Result | SQLSTATE |',
              '|---|---|---|---|---|']
     for c in report['checks']:
         lines.append(f"| {c['stage']} | {c['version']} | {c['operation']} | "
                      f"{c['status']} | {c.get('sqlstate') or '—'} |")
+        if c.get('failure_reason') == 'record_missing':
+            lines.append('| | | Expected record unavailable (record_missing). | | |')
+        if c.get('status') == 'SKIP' and c.get('reason_code') == 'create_not_acknowledged':
+            lines.append('| | | Not executed: new_write did not acknowledge a committed create. | | |')
+    if report.get('coverage'):
+        lines += ['', 'Coverage: one mapped string CRUD workflow. Unmapped fields, derived values and other business invariants are not checked.']
     if report.get('provenance'):
         lines += ['', 'Upstream provenance: `' + json.dumps(report['provenance'], sort_keys=True) + '`']
     lines += ['', '## Scope and limitations', '']
@@ -29,6 +36,8 @@ def markdown(report):
         lines += ['- ' + action for action in issue['actions']]
     if report.get('cleanup_evidence'):
         lines += ['', 'Cleanup evidence: `' + json.dumps(report['cleanup_evidence'], sort_keys=True) + '`']
+    if report.get('database_role_capabilities'):
+        lines += ['', 'Runner-only role capabilities (not application role identity): `' + json.dumps(report['database_role_capabilities'],sort_keys=True) + '`']
     return '\n'.join(lines) + '\n'
 
 
@@ -66,14 +75,20 @@ def load_report(path):
     if not isinstance(report.get('limitations'), list) or not all(
             isinstance(item, str) for item in report['limitations']):
         raise ValueError('Scope limitations are required')
+    if type(report.get('migration_transactional', True)) is not bool:
+        raise ValueError('Invalid candidate execution mode')
     if not isinstance(report.get('checks'), list):
         raise ValueError('Expected operation evidence')
     for check in report['checks']:
         if not isinstance(check, dict) or any(not isinstance(check.get(key), str)
                 for key in ('id', 'stage', 'version', 'operation', 'status')):
             raise ValueError('Invalid operation evidence')
-        if check['status'] not in {'PASS', 'FAIL'}:
+        if check['status'] not in {'PASS', 'FAIL', 'SKIP'}:
             raise ValueError('Unsupported operation status')
+        if check['status'] == 'SKIP' and (check.get('depends_on') != 'new_write'
+                or check.get('reason_code') != 'create_not_acknowledged'
+                or check['id'] != 'rollback_new_data'):
+            raise ValueError('Invalid skipped-operation evidence')
         state = check.get('sqlstate')
         if state is not None and (not isinstance(state, str) or not re.fullmatch(r'[0-9A-Z]{5}', state)):
             raise ValueError('Invalid SQLSTATE evidence')
